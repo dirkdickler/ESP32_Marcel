@@ -1,0 +1,863 @@
+#include <AsyncElegantOTA.h> //https://randomnerdtutorials.com/esp32-ota-over-the-air-arduino/#1-basic-elegantota
+#include <elegantWebpage.h>
+#include <Hash.h>
+//#include <webserial_webpage.h>
+/*********
+  Rui Santos
+  Complete project details at https://RandomNerdTutorials.com/esp32-websocket-server-arduino/
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+*********/
+
+// Import required libraries
+#include <string.h>
+#include <stdlib.h>
+#include <Arduino.h>
+#include <WiFi.h>
+#include <AsyncTCP.h>
+#include <ESPAsyncWebServer.h>
+#include <Arduino_JSON.h>
+#include <esp_task_wdt.h>
+#include "time.h"
+#include <Ticker.h>
+#include <EEPROM.h>
+#include "index.h"
+#include "main.h"
+#include "define.h"
+
+#include "FS.h"
+#include "SD.h"
+#include "SPI.h"
+#include <SoftwareSerial.h>
+#include <ESP32Time.h>
+
+#define ENCODER1 2
+#define ENCODER2 3
+volatile long int encoder_pos = 0;
+
+// Replace with your network credentials
+//const char* ssid = "Grabcovi";
+//const char* password = "40177298";
+const char *soft_ap_ssid = "aDum_Server";
+const char *soft_ap_password = "aaaaaaaaaa";
+//const char *ssid = "semiart";
+//const char *password = "aabbccddff";
+char NazovSiete[30];
+char Heslo[30];
+
+// Create AsyncWebServer object on port 80
+AsyncWebServer server(80);
+AsyncWebSocket ws("/ws");
+
+JSONVar myObject, myObject2, ObjDatumCas, ObjTopeni;
+Ticker timer_10ms(Loop_10ms, 10, 0, MILLIS);
+Ticker timer_100ms(Loop_100ms, 300, 0, MILLIS);
+Ticker timer_1sek(Loop_1sek, 1000, 0, MILLIS);
+Ticker timer_10sek(Loop_10sek, 10000, 0, MILLIS);
+
+SoftwareSerial swSer(14, 12, false, 256);
+char swTxBuffer[16];
+char swRxBuffer[16];
+
+SPIClass SDSPI(HSPI);
+
+ESP32Time rtc;
+
+IPAddress local_IP(192, 168, 1, 14);
+IPAddress gateway(192, 168, 1, 1);
+IPAddress subnet(255, 255, 255, 0);
+IPAddress primaryDNS(8, 8, 8, 8);	//optional
+IPAddress secondaryDNS(8, 8, 4, 4); //optional
+
+const char *ntpServer = "pool.ntp.org";
+const long gmtOffset_sec = 3600;
+const int daylightOffset_sec = 3600; //letny cas
+struct tm timeinfo;
+const u8 mojePrmenaae = 25;
+u16_t cnt = 0;
+
+static TERMOSTAT_t room[12];
+char gloBuff[200];
+
+void notifyClients()
+{
+	//ws.textAll(String(ledState));
+}
+
+//** ked Webstrenaky - jejich ws posle nejake data napriklad "VratMiCas" tj ze strnaky chcu RTC aby ich napriklad zobrazili
+void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
+{
+	AwsFrameInfo *info = (AwsFrameInfo *)arg;
+	if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT)
+	{
+		data[len] = 0;
+
+		if (strcmp((char *)data, "VratMiCas") == 0)
+		{
+			OdosliCasDoWS();
+
+			//notifyClients();
+		}
+		else if (strcmp((char *)data, "VratNamerane_TaH") == 0)
+		{
+			Serial.println("stranky poslali: VratNamerane_TaH ");
+
+			OdosliStrankeVytapeniData();
+		}
+
+		else if (strcmp((char *)data, "ZaluzieOtvorVsetky") == 0)
+		{
+			Serial.println("stranky poslali: ZaluzieOtvorVsetky ");
+		}
+
+		else if (strcmp((char *)data, "ZaluzieZatvorVsetky") == 0)
+		{
+			Serial.println("stranky poslali: ZaluzieOtvorVsetky ");
+		}
+	}
+}
+
+void onEvent(AsyncWebSocket *server,
+			 AsyncWebSocketClient *client,
+			 AwsEventType type,
+			 void *arg,
+			 uint8_t *data,
+			 size_t len)
+{
+	switch (type)
+	{
+	case WS_EVT_CONNECT:
+		Serial.printf("WebSocket client #%u connected from %s\n", client->id(), client->remoteIP().toString().c_str());
+		break;
+	case WS_EVT_DISCONNECT:
+		Serial.printf("WebSocket client #%u disconnected\n", client->id());
+		break;
+	case WS_EVT_DATA:
+		handleWebSocketMessage(arg, data, len);
+		break;
+	case WS_EVT_PONG:
+	case WS_EVT_ERROR:
+		break;
+	}
+}
+
+void initWebSocket()
+{
+	ws.onEvent(onEvent);
+	server.addHandler(&ws);
+}
+
+String processor(const String &var)
+{
+	Serial.println(var);
+	if (var == "STATE")
+	{
+		/*if (ledState) {
+			return "ON";
+		}
+		else {
+			return "OFF";
+		}*/
+	}
+
+	return "--";
+}
+
+/**********************************************************
+ ***************        SETUP         **************
+ **********************************************************/
+
+void setup()
+{
+	Serial.begin(115200);
+	Serial.println("Spustam applikaciu.123");
+
+	pinMode(RS485_DirPin, OUTPUT);
+	pinMode(LedOrange, OUTPUT);
+	RS485_RxMode;
+	//Serial1.println("test RS485.. Begin");
+	digitalWrite(LedOrange, LOW);
+
+	attachInterrupt(digitalPinToInterrupt(ENCODER1), encoder, RISING);
+	pinMode(ENCODER1, INPUT);
+	pinMode(ENCODER2, INPUT);
+
+	rtc.setTime(30, 24, 15, 17, 1, 2021); // 17th Jan 2021 15:24:30
+
+#define SD_miso 13
+#define SD_mosi 11
+#define SD_sck 12
+#define SD_ss 10
+
+	SDSPI.setFrequency(3500000);
+	SDSPI.begin(SD_sck, SD_miso, SD_mosi, -1);
+	pinMode(SD_ss, OUTPUT); //HSPI SS  set slave select pins as output
+
+	if (!SD.begin(SD_ss, SDSPI))
+	{
+		Serial.println("Card Mount Failed");
+	}
+	else
+	{
+		Serial.println("Card Mount OK!!...");
+
+		File profile = SD.open("/IPCONFIG.TXT", FILE_READ);
+		Serial.printf("Velkost subora je :%lu\r\n", profile.size());
+		if (!profile)
+		{
+			Serial.println("Opening file to read failed");
+			return;
+		}
+
+		Serial.println("File Content:");
+
+		while (profile.available())
+		{
+			while (profile.available())
+			{
+				Serial.write(profile.read());
+			}
+			Serial.println("");
+			Serial.println("File read done");
+			Serial.println("=================");
+		}
+	}
+
+	ESPinfo();
+
+	myObject["hello"] = " 11:22 Streda";
+	myObject["true"] = true;
+	myObject["x"] = 42;
+	myObject2["Citac"] = 42;
+
+	NacitajEEPROM_setting();
+	//WiFi.mode(WIFI_MODE_STA);
+	WiFi.mode(WIFI_MODE_APSTA);
+	Serial.println("Creating Accesspoint");
+	WiFi.softAP(soft_ap_ssid, soft_ap_password, 7, 0, 3);
+	Serial.print("IP address:\t");
+	Serial.println(WiFi.softAPIP());
+
+	if (!WiFi.config(local_IP, gateway, subnet, primaryDNS, secondaryDNS))
+	{
+		Serial.println("STA Failed to configure");
+	}
+
+	WiFi.begin(NazovSiete, Heslo);
+	u8_t aa = 0;
+	while (WiFi.waitForConnectResult() != WL_CONNECTED && aa < 2)
+	{
+		Serial.print(".");
+		aa++;
+	}
+	// Print ESP Local IP Address
+	Serial.println(WiFi.localIP()); //TODO test todo
+
+	initWebSocket();
+
+	FuncServer_On();
+
+	AsyncElegantOTA.begin(&server, "qqq", "www"); // Start ElegantOTA
+
+	configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+	getLocalTime(&timeinfo);
+	server.begin();
+
+	timer_10ms.start();
+	timer_100ms.start();
+	timer_1sek.start();
+	timer_10sek.start();
+	esp_task_wdt_init(WDT_TIMEOUT, true); //enable panic so ESP32 restarts
+	esp_task_wdt_add(NULL);				  //add current thread to WDT watch
+
+	testik();
+
+	//RS485 musis spustit az tu, lebo ak ju das hore a ESP ceka na konnect wifi, a pridu nejake data na RS485, tak FreeRTOS =RESET  asi overflow;
+	Serial1.begin(9600);
+
+	swSer.begin(115200);
+	swSer.println("");
+}
+
+void loop()
+{
+	esp_task_wdt_reset();
+	ws.cleanupClients();
+	AsyncElegantOTA.loop();
+	timer_10ms.update();
+	timer_100ms.update();
+	timer_1sek.update();
+	timer_10sek.update();
+}
+
+void Loop_10ms()
+{
+
+#define indexData 14
+	static uint8_t TimeOut_RXdata = 0;	 //musi byt static lebo sem skaces z Loop
+	static uint16_t KolkkoNplnenych = 0; //musi byt static lebo sem skaces z Loop
+	static char budd[100];				 //musi byt static lebo sem skaces z Loop
+
+	uint16_t aktualny;
+	char temp[200];
+
+	aktualny = Serial1.available();
+	if (aktualny)
+	{
+
+		//Serial2.readBytes (temp, aktualny);
+		for (uint16_t i = 0; i < aktualny; i++)
+		{
+			budd[KolkkoNplnenych + i] = Serial1.read();
+		}
+		KolkkoNplnenych += aktualny;
+		TimeOut_RXdata = 5;
+	}
+
+	if (TimeOut_RXdata)
+	{
+		if (--TimeOut_RXdata == 0)
+		{
+			{
+				Serial.printf("[Serial 1] doslo:%u a to %s\n", KolkkoNplnenych, budd);
+
+				RS485_PACKET_t *loc_paket;
+				loc_paket = (RS485_PACKET_t *)budd;
+
+				Serial.printf("[Serial 1]  DST adresa je:%u \n", loc_paket->DSTadress);
+
+				if (loc_paket->SCRadress == 10)
+				{
+					Serial.printf("[Serial 1] Mam adresu 10 a idem ulozit data z RS485");
+
+					room[0].T_podlaha = budd[indexData + 4];
+					room[0].T_podlaha <<= 8;
+					room[0].T_podlaha += budd[indexData + 3];
+					room[0].T_vzduch = budd[indexData + 6];
+					room[0].T_vzduch <<= 8;
+					room[0].T_vzduch += budd[indexData + 5];
+					room[0].RH_vlhkkost = budd[indexData + 8];
+					room[0].RH_vlhkkost <<= 8;
+					room[0].RH_vlhkkost += budd[indexData + 7];
+					room[0].T_podlaha_SET = budd[indexData + 10];
+					room[0].T_podlaha_SET <<= 8;
+					room[0].T_podlaha_SET += budd[indexData + 9];
+					room[0].T_vzduch_SET = budd[indexData + 12];
+					room[0].T_vzduch_SET <<= 8;
+					room[0].T_vzduch_SET += budd[indexData + 11];
+					room[0].RH_vlhkkost_SET = budd[indexData + 14];
+					room[0].RH_vlhkkost_SET <<= 8;
+					room[0].RH_vlhkkost_SET += budd[indexData + 13];
+					room[0].teleso = budd[indexData + 15];
+
+					OdosliStrankeVytapeniData();
+				}
+
+				memset(budd, 0, sizeof(budd));
+				KolkkoNplnenych = 0;
+			}
+		}
+	}
+}
+
+void Loop_100ms(void)
+{
+	static bool LedNahodena = false;
+
+	if (LedNahodena == false)
+	{
+		LedNahodena = true;
+		//digitalWrite(LedGreen, LOW);
+		digitalWrite(LedOrange, LOW);
+	}
+	else
+	{
+		LedNahodena = false;
+		//digitalWrite(LedGreen, HIGH);
+		digitalWrite(LedOrange, HIGH);
+
+		//RS485_TxMode;
+		//Serial1.println("test RS485..orange LED High");
+	}
+
+	cnt++;
+
+	//Serial.println("[100ms] Loop");
+	if (0) //cnt >= 10)
+	{
+		cnt++;
+		myObject2["Citac"] = cnt; // " 11:22 Stredaaaa";
+		String jsonString = JSON.stringify(myObject2);
+		Serial.print("[100ms] Toto je string co odoslen strankam:");
+		Serial.println(jsonString);
+		ws.textAll(jsonString);
+	}
+}
+
+void Loop_1sek(void)
+{
+	Serial.print("[1sek Loop]  mam 1 sek....  ");
+	Serial.println(rtc.getTime("%A, %B %d %Y %H:%M:%S"));
+	Serial.print("[1sek Loop]  free Heap je:");
+	Serial.println(ESP.getFreeHeap());
+}
+
+void Loop_10sek(void)
+{
+	Serial.println("Mam Loop 10 sek............");
+	sprintf(gloBuff, "[10sek loop] Tep:%i a vlhkost:%i\r\n", room[0].T_vzduch, room[0].RH_vlhkkost);
+	Serial.print(gloBuff);
+
+	if (!getLocalTime(&timeinfo))
+	{
+		Serial.println("Failed to obtain time");
+	}
+}
+
+String ConvetWeekDay_UStoCZ(tm *timeInfoPRT)
+{
+	char loc_buf[30];
+	String ee;
+
+	strftime(loc_buf, 30, " %A", timeInfoPRT);
+	ee = String(ee + loc_buf);
+
+	if (ee == " Monday")
+	{
+		ee = "Pondelí";
+	}
+	else if (ee == " Tuesday")
+	{
+		ee = "Úterý";
+	}
+	else if (ee == " Wednesday")
+	{
+		ee = "Středa";
+	}
+	else if (ee == " Thursday")
+	{
+		ee = "Štvrtek";
+	}
+	else if (ee == " Friday")
+	{
+		ee = "Pátek";
+	}
+	else if (ee == " Saturday")
+	{
+		ee = "Sobota";
+	}
+	else if (ee == " Sunday")
+	{
+		ee = "Nedele";
+	}
+	else
+	{
+		ee = "? den ?";
+	}
+	return ee;
+}
+
+String ConvetWeekDay_UStoSK(tm *timeInfoPRT)
+{
+	char loc_buf[30];
+	String ee;
+
+	strftime(loc_buf, 30, " %A", timeInfoPRT);
+	ee = String(ee + loc_buf);
+
+	if (ee == " Monday")
+	{
+		ee = "Pondelok";
+	}
+	else if (ee == " Tuesday")
+	{
+		ee = "Útorok";
+	}
+	else if (ee == " Wednesday")
+	{
+		ee = "Streda";
+	}
+	else if (ee == " Thursday")
+	{
+		ee = "Štvrtok";
+	}
+	else if (ee == " Friday")
+	{
+		ee = "Piatok";
+	}
+	else if (ee == " Saturday")
+	{
+		ee = "Sobota";
+	}
+	else if (ee == " Sunday")
+	{
+		ee = "Nedeľa";
+	}
+	else
+	{
+		ee = "? den ?";
+	}
+	return ee;
+}
+
+void OdosliCasDoWS(void)
+{
+	String DenvTyzdni = "! Čas nedostupný !";
+	char loc_buf[60];
+	DenvTyzdni = ConvetWeekDay_UStoSK(&timeinfo);
+	char hodiny[5];
+	char minuty[5];
+	strftime(loc_buf, sizeof(loc_buf), " %H:%M    %d.%m.%Y    ", &timeinfo);
+
+	ObjDatumCas["Cas"] = loc_buf + DenvTyzdni; // " 11:22 Stredaaaa";
+	String jsonString = JSON.stringify(ObjDatumCas);
+	Serial.print("[10sek] Odosielam strankam ws Cas:");
+	Serial.println(jsonString);
+	ws.textAll(jsonString);
+}
+
+void FuncServer_On(void)
+{
+	server.on("/",
+			  HTTP_GET,
+			  [](AsyncWebServerRequest *request)
+			  {
+				  //if (!request->authenticate("ahoj", "xxxx"))
+				  //return request->requestAuthentication();
+				  //request->send_P(200, "text/html", index_html, processor);
+				  request->send_P(200, "text/html", Main);
+			  });
+
+	server.on("/nastavip",
+			  HTTP_GET,
+			  [](AsyncWebServerRequest *request)
+			  {
+				  if (!request->authenticate("admin", "adum"))
+					  return request->requestAuthentication();
+				  request->send(200, "text/html", handle_Zadavanie_IP_setting());
+			  });
+
+	server.on("/Nastaveni",
+			  HTTP_GET,
+			  [](AsyncWebServerRequest *request)
+			  {
+				  handle_Nastaveni(request);
+				  request->send(200, "text/html", "Nastavujem a ukladam do EEPROM");
+				  Serial.println("Idem resetovat ESP");
+				  delay(2000);
+				  esp_restart();
+			  });
+
+	server.on("/status",
+			  HTTP_GET,
+			  [](AsyncWebServerRequest *request)
+			  {
+				  char ttt[500];
+
+				  sprintf(ttt,
+						  "Firmware :%s<br>Citac:%u",
+						  firmwaree,
+						  cnt);
+
+				  request->send(200, "text/html", ttt);
+			  });
+
+	server.on("/reset",
+			  HTTP_GET,
+			  [](AsyncWebServerRequest *request)
+			  {
+				  if (!request->authenticate("admin", "radecek78"))
+					  return request->requestAuthentication();
+
+				  request->send(200, "text/html", "resetujem!!!");
+				  delay(1000);
+				  esp_restart();
+			  });
+
+	server.on("/vytapeni",
+			  HTTP_GET,
+			  [](AsyncWebServerRequest *request)
+			  {
+				  request->send_P(200, "text/html", vytapeni);
+			  });
+
+	server.on("/zaluzie_Main",
+			  HTTP_GET,
+			  [](AsyncWebServerRequest *request)
+			  {
+				  request->send_P(200, "text/html", zaluzie_Main);
+			  });
+}
+
+//***********************************************  Hepl function ********************************************/
+// #include <Arduino.h>
+// #include "define.h"
+
+void testik(void)
+{
+	Serial.println("Test funkcie testik");
+
+	Serial.println("Konec - Test funkcie testik");
+}
+
+void ESPinfo(void)
+{
+	esp_chip_info_t chip_info;
+	esp_chip_info(&chip_info);
+	Serial.println("\r\n*******************************************************************");
+	Serial.println("\r\nHardware info");
+	Serial.printf("%d cores Wifi %s%s\n",
+				  chip_info.cores,
+				  (chip_info.features & CHIP_FEATURE_BT) ? "/BT" : "",
+				  (chip_info.features & CHIP_FEATURE_BLE) ? "/BLE" : "");
+	Serial.printf("\r\nSilicon revision: %d\r\n ", chip_info.revision);
+	Serial.printf("%dMB %s flash\r\n",
+				  spi_flash_get_chip_size() / (1024 * 1024),
+				  (chip_info.features & CHIP_FEATURE_EMB_FLASH) ? "embeded" : "external");
+
+	Serial.printf("\r\nTotal heap: %d\r\n", ESP.getHeapSize());
+	Serial.printf("Free heap: %d\r\n", ESP.getFreeHeap());
+	Serial.printf("Total PSRAM: %d\r\n", ESP.getPsramSize());
+	Serial.printf("Free PSRAM: %d\r\n", ESP.getFreePsram()); // log_d("Free PSRAM: %d", ESP.getFreePsram());
+	Serial.println("\r\n*******************************************************************");
+}
+
+int getIpBlock(int index, String str)
+{
+	char separator = '.';
+	int found = 0;
+	int strIndex[] = {0, -1};
+	int maxIndex = str.length() - 1;
+
+	for (int i = 0; i <= maxIndex && found <= index; i++)
+	{
+		if (str.charAt(i) == separator || i == maxIndex)
+		{
+			found++;
+			strIndex[0] = strIndex[1] + 1;
+			strIndex[1] = (i == maxIndex) ? i + 1 : i;
+		}
+	}
+
+	return found > index ? str.substring(strIndex[0], strIndex[1]).toInt() : 0;
+}
+
+String ipToString(IPAddress ip)
+{
+	String s = "";
+	for (int i = 0; i < 4; i++)
+		s += i ? "." + String(ip[i]) : String(ip[i]);
+	return s;
+}
+
+IPAddress str2IP(String str)
+{
+
+	IPAddress ret(getIpBlock(0, str), getIpBlock(1, str), getIpBlock(2, str), getIpBlock(3, str));
+	return ret;
+}
+
+String handle_LenZobraz_IP_setting(void)
+{
+	char ttt[1000];
+	char NazovSiete[56] = {"nazovSiete\0"};
+	char ippadresa[56];
+	char maskaIP[56];
+	char brana[56];
+
+	EEPROM.readString(EE_NazovSiete, NazovSiete, 16);
+	IPAddress ip = WiFi.localIP();
+	String stt = ipToString(ip);
+	stt.toCharArray(ippadresa, 16);
+	stt = ipToString(WiFi.subnetMask());
+	stt.toCharArray(maskaIP, 16);
+	stt = ipToString(WiFi.gatewayIP());
+	stt.toCharArray(brana, 16);
+
+	Serial.print("\r\nVyparsrovane IP: ");
+	Serial.print(ippadresa);
+	Serial.print("\r\nVyparsrovane MASKa: ");
+	Serial.print(maskaIP);
+	Serial.print("\r\nVyparsrovane Brana: ");
+	Serial.print(brana);
+
+	sprintf(ttt, LenzobrazIP_html, ippadresa, maskaIP, brana, NazovSiete);
+	return ttt;
+	//server.send (200, "text/html", ttt);
+}
+
+String handle_Zadavanie_IP_setting()
+{
+	char ttt[1000];
+	char NazovSiete[56] = {"nazovSiete\0"};
+	char HesloSiete[56] = {"HesloSiete\0"};
+	char ippadresa[56];
+	char maskaIP[56];
+	char brana[56];
+
+	IPAddress ip = WiFi.localIP();
+	String stt = ipToString(ip);
+	stt.toCharArray(ippadresa, 16);
+	stt = ipToString(WiFi.subnetMask());
+	stt.toCharArray(maskaIP, 16);
+	stt = ipToString(WiFi.gatewayIP());
+	stt.toCharArray(brana, 16);
+
+	EEPROM.readString(EE_NazovSiete, NazovSiete, 16);
+	Serial.print("\r\nNazov siete: ");
+	Serial.print(NazovSiete);
+
+	EEPROM.readString(EE_Heslosiete, HesloSiete, 16);
+	Serial.print("\r\nHeslo siete: ");
+	Serial.print(HesloSiete);
+
+	Serial.print("\r\nVyparsrovane IP: ");
+	Serial.print(ippadresa);
+	Serial.print("\r\nVyparsrovane MASKa: ");
+	Serial.print(maskaIP);
+	Serial.print("\r\nVyparsrovane Brana: ");
+	Serial.print(brana);
+
+	sprintf(ttt, zadavaci_html, ippadresa, maskaIP, brana, NazovSiete, HesloSiete);
+	//Serial.print ("\r\nToto je bufer pre stranky:\r\n");
+	//Serial.print(ttt);
+
+	return ttt;
+}
+
+void handle_Nastaveni(AsyncWebServerRequest *request)
+{
+	String inputMessage;
+	String inputParam;
+	Serial.println("Mam tu nastaveni");
+
+	if (request->hasParam("input1"))
+	{
+		inputMessage = request->getParam("input1")->value();
+		if (inputMessage.length() < 16)
+		{
+			EEPROM.writeString(EE_IPadresa, inputMessage);
+		}
+	}
+
+	if (request->hasParam("input2"))
+	{
+		inputMessage = request->getParam("input2")->value();
+		if (inputMessage.length() < 16)
+		{
+			EEPROM.writeString(EE_SUBNET, inputMessage);
+		}
+	}
+
+	if (request->hasParam("input3"))
+	{
+		inputMessage = request->getParam("input3")->value();
+		if (inputMessage.length() < 16)
+		{
+			EEPROM.writeString(EE_Brana, inputMessage);
+		}
+	}
+
+	if (request->hasParam("input4"))
+	{
+		inputMessage = request->getParam("input4")->value();
+		if (inputMessage.length() < 16)
+		{
+			EEPROM.writeString(EE_NazovSiete, inputMessage);
+		}
+	}
+
+	if (request->hasParam("input5"))
+	{
+		inputMessage = request->getParam("input5")->value();
+		if (inputMessage.length() < 20)
+		{
+			EEPROM.writeString(EE_Heslosiete, inputMessage);
+		}
+	}
+
+	EEPROM.commit();
+}
+
+int8_t NacitajEEPROM_setting(void)
+{
+	if (!EEPROM.begin(500))
+	{
+		Serial.println("Failed to initialise EEPROM");
+		return -1;
+	}
+
+	Serial.println("Succes to initialise EEPROM");
+
+	EEPROM.readBytes(EE_NazovSiete, NazovSiete, 16);
+
+	if (NazovSiete[0] != 0xff) //ak mas novy modul tak EEPROM vrati prazdne hodnoty, preto ich neprepisem z EEPROM, ale necham default
+	{
+		String apipch = EEPROM.readString(EE_IPadresa); // "192.168.1.11";
+		local_IP = str2IP(apipch);
+
+		apipch = EEPROM.readString(EE_SUBNET);
+		subnet = str2IP(apipch);
+
+		apipch = EEPROM.readString(EE_Brana);
+		gateway = str2IP(apipch);
+
+		memset(NazovSiete, 0, sizeof(NazovSiete));
+		memset(Heslo, 0, sizeof(Heslo));
+		u8_t dd = EEPROM.readBytes(EE_NazovSiete, NazovSiete, 16);
+		u8_t ww = EEPROM.readBytes(EE_Heslosiete, Heslo, 20);
+		Serial.printf("Nacitany nazov siete a heslo z EEPROM: %s  a %s\r\n", NazovSiete, Heslo);
+		return 0;
+	}
+	else
+	{
+		Serial.println("EEPROM je este prazna, nachavma default hodnoty");
+		sprintf(NazovSiete, "semiart");
+		sprintf(Heslo, "aabbccddff");
+		return 1;
+	}
+}
+
+void OdosliStrankeVytapeniData(void)
+{
+	ObjTopeni["tep1"] = room[0].T_vzduch;
+	ObjTopeni["hum1"] = room[0].RH_vlhkkost;
+	ObjTopeni["tep2"] = room[1].T_vzduch;
+	ObjTopeni["hum2"] = room[1].RH_vlhkkost;
+	ObjTopeni["tep3"] = room[2].T_vzduch;
+	ObjTopeni["hum3"] = room[2].RH_vlhkkost;
+	ObjTopeni["tep4"] = room[3].T_vzduch;
+	ObjTopeni["hum4"] = room[3].RH_vlhkkost;
+	ObjTopeni["tep5"] = room[4].T_vzduch;
+	ObjTopeni["hum5"] = room[4].RH_vlhkkost;
+	ObjTopeni["tep6"] = room[5].T_vzduch;
+	ObjTopeni["hum6"] = room[5].RH_vlhkkost;
+	ObjTopeni["tep7"] = room[6].T_vzduch;
+	ObjTopeni["hum7"] = room[6].RH_vlhkkost;
+	ObjTopeni["tep8"] = room[7].T_vzduch;
+	ObjTopeni["hum8"] = room[7].RH_vlhkkost;
+	ObjTopeni["tep9"] = room[8].T_vzduch;
+	ObjTopeni["hum9"] = room[8].RH_vlhkkost;
+	ObjTopeni["tep10"] = room[9].T_vzduch;
+	ObjTopeni["hum10"] = room[9].RH_vlhkkost;
+	ObjTopeni["tep11"] = room[10].T_vzduch;
+	ObjTopeni["hum11"] = room[10].RH_vlhkkost;
+
+	String jsonString = JSON.stringify(ObjTopeni);
+	Serial.print("[ event -VratNamerane_TaH] Odosielam strankam ObjTopeni:");
+	//Serial.println(jsonString);
+	ws.textAll(jsonString);
+}
+
+void encoder()
+{
+
+	if (digitalRead(ENCODER2) == HIGH)
+	{
+		encoder_pos++;
+	}
+	else
+	{
+		encoder_pos--;
+	}
+}
