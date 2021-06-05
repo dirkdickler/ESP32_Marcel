@@ -42,7 +42,7 @@ const char *soft_ap_ssid = "aDum_Server";
 const char *soft_ap_password = "aaaaaaaaaa";
 //const char *ssid = "semiart";
 //const char *password = "aabbccddff";
-char NazovSiete[30];
+char NazovSiete[30]; 
 char Heslo[30];
 
 // Create AsyncWebServer object on port 80
