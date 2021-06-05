@@ -15,8 +15,18 @@ const int RS485_DirPin = 16;
 
 #define WDT_TIMEOUT 5
 #define  firmwaree "1ddx2"
-//EEPROM adrese
 
+// Assign output variables to GPIO pins
+const int Rele_K1 = 23;
+const int Rele_K2 = 24;
+const int Rele_K3 = 25;
+const int Rele_K4 = 26;
+const int Rele_K5 = 29;
+const int Rele_K6 = 30;
+const int Rele_K7 = 31;
+
+
+//EEPROM adrese
 #define EE_IPadresa 00				//16bytes
 #define EE_SUBNET 16				//16bytes
 #define EE_Brana 32					//16bytes

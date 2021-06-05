@@ -3,6 +3,7 @@
 //tu je link na ikony
 //https://www.angularjswiki.com/fontawesome/weather/
 
+
 const char zadavaci_html[] PROGMEM = R"rawliteral(
 <!DOCTYPE HTML><html><head>
   <meta charset="utf-8">
