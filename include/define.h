@@ -12,9 +12,11 @@ const int LedOrange = 21;
 const int RS485_DirPin = 16;
 #define   RS485_RxMode  digitalWrite (RS485_DirPin, LOW);
 #define   RS485_TxMode  digitalWrite (RS485_DirPin, HIGH);
+#define   RS485_TimeOut 5  //ms
+
 
 #define WDT_TIMEOUT 5
-#define  firmwaree "1ddx2"
+#define firmware "ver20210614_1"
 
 
 //EEPROM adrese

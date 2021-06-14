@@ -21,7 +21,7 @@
 #include "time.h"
 #include <Ticker.h>
 #include <EEPROM.h>
-#include "index.h"
+#include "index.htm"
 #include "main.h"
 #include "define.h"
 
@@ -42,7 +42,7 @@ const char *soft_ap_ssid = "aDum_Server";
 const char *soft_ap_password = "aaaaaaaaaa";
 //const char *ssid = "semiart";
 //const char *password = "aabbccddff";
-char NazovSiete[30]; 
+char NazovSiete[30];
 char Heslo[30];
 
 // Create AsyncWebServer object on port 80
@@ -50,12 +50,14 @@ AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
 
 JSONVar myObject, myObject2, ObjDatumCas, ObjTopeni;
+Ticker timer_1ms(Loop_1ms, 1, 0, MILLIS);
 Ticker timer_10ms(Loop_10ms, 10, 0, MILLIS);
 Ticker timer_100ms(Loop_100ms, 300, 0, MILLIS);
 Ticker timer_1sek(Loop_1sek, 1000, 0, MILLIS);
 Ticker timer_10sek(Loop_10sek, 10000, 0, MILLIS);
 
 SoftwareSerial swSer(14, 12, false, 256);
+u8 RS485_toRx_timeout;
 char swTxBuffer[16];
 char swRxBuffer[16];
 
@@ -72,7 +74,12 @@ IPAddress secondaryDNS(8, 8, 4, 4); //optional
 const char *ntpServer = "pool.ntp.org";
 const long gmtOffset_sec = 3600;
 const int daylightOffset_sec = 3600; //letny cas
-struct tm timeinfo;
+struct tm MyRTC_cas;
+bool Internet_CasDostupny = false; //to je ze dostava cas z Inernetu
+bool RTC_cas_OK = false;		   //ze mam RTC fakt nastaveny bud z interneru, alebo nastaveny manualne
+								   //a to teda ze v RTC mam fakr realny cas
+								   //Tento FLAG, nastavi len pri nacitanie casu z internutu, alebo do buducna manualne nastavenie casu cew WEB
+
 const u8 mojePrmenaae = 25;
 u16_t cnt = 0;
 
@@ -108,11 +115,15 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
 		else if (strcmp((char *)data, "ZaluzieOtvorVsetky") == 0)
 		{
 			Serial.println("stranky poslali: ZaluzieOtvorVsetky ");
+			RS485_TxModee(&RS485_toRx_timeout);
+			Serial1.println("test RS485..ZaluzieOtvorVsetky zaluzky.. ");
 		}
 
 		else if (strcmp((char *)data, "ZaluzieZatvorVsetky") == 0)
 		{
-			Serial.println("stranky poslali: ZaluzieOtvorVsetky ");
+			Serial.println("stranky poslali: ZaluzieZatvorVsetky ");
+			RS485_TxModee(&RS485_toRx_timeout);
+			Serial1.println("test RS485..Zaluzie-ZatvorVsetky zaluzky..");
 		}
 	}
 }
@@ -260,9 +271,10 @@ void setup()
 	AsyncElegantOTA.begin(&server, "qqq", "www"); // Start ElegantOTA
 
 	configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
-	getLocalTime(&timeinfo);
+	//getLocalTime(&MyRTC_cas);
 	server.begin();
 
+	timer_1ms.start();
 	timer_10ms.start();
 	timer_100ms.start();
 	timer_1sek.start();
@@ -284,16 +296,28 @@ void loop()
 	esp_task_wdt_reset();
 	ws.cleanupClients();
 	AsyncElegantOTA.loop();
+	timer_1ms.update();
 	timer_10ms.update();
 	timer_100ms.update();
 	timer_1sek.update();
 	timer_10sek.update();
 }
 
+void Loop_1ms()
+{   
+	if (RS485_toRx_timeout  && Serial1.availableForWrite() ==127)  //127 bytes je: PDF • 512 x 8-bit RAM shared by TX FIFOs and RX FIFOs of two UART controllers  128TX0 + 128Rx0 + 128TX1 + 128Rx1
+	{
+		if (--RS485_toRx_timeout == 0)
+		{
+			RS485_RxMode;
+			Serial.println("[Loop 1ms]  Davam RS485 do RX mode");
+		}
+	}
+}
+
 void Loop_10ms()
 {
-
-#define indexData 14
+   #define indexData 14
 	static uint8_t TimeOut_RXdata = 0;	 //musi byt static lebo sem skaces z Loop
 	static uint16_t KolkkoNplnenych = 0; //musi byt static lebo sem skaces z Loop
 	static char budd[100];				 //musi byt static lebo sem skaces z Loop
@@ -397,20 +421,73 @@ void Loop_100ms(void)
 void Loop_1sek(void)
 {
 	Serial.print("[1sek Loop]  mam 1 sek....  ");
+	if (Internet_CasDostupny == false)
+	{
+		Serial.print("Internet cas nedostupny !!,  ");
+	}
+	else
+	{
+		Serial.print("Internet cas dostupny,  ");
+	}
+	Serial.print("RTC cas cez func rtc.getTime: ");
 	Serial.println(rtc.getTime("%A, %B %d %Y %H:%M:%S"));
-	Serial.print("[1sek Loop]  free Heap je:");
-	Serial.println(ESP.getFreeHeap());
+	MyRTC_cas = rtc.getTimeStruct();
+	//Serial.print("[1sek Loop]  free Heap je:");
+	//Serial.println(ESP.getFreeHeap());
+	
+	//Serial.print("RS485 available: ");
+	//Serial.println(Serial1.availableForWrite());
 }
 
 void Loop_10sek(void)
 {
-	Serial.println("Mam Loop 10 sek............");
-	sprintf(gloBuff, "[10sek loop] Tep:%i a vlhkost:%i\r\n", room[0].T_vzduch, room[0].RH_vlhkkost);
-	Serial.print(gloBuff);
+	static u8_t loc_cnt = 0;
+	Serial.println("\r\n[10sek Loop]  Mam Loop 10 sek..........");
 
-	if (!getLocalTime(&timeinfo))
+	Serial.print("Wifi status:");
+	Serial.println(WiFi.status());
+
+	//https://randomnerdtutorials.com/esp32-useful-wi-fi-functions-arduino/
+	if (WiFi.status() != WL_CONNECTED)
 	{
-		Serial.println("Failed to obtain time");
+		loc_cnt++;
+		Internet_CasDostupny = false;
+	}
+	else
+	{
+		loc_cnt = 0;
+		Serial.println("[10sek] Parada WIFI je Connect davam loc_cnt na Nula");
+
+		//TODO ak je Wifi connect tak pocitam ze RTC cas bude OK este dorob
+		Internet_CasDostupny = true;
+		RTC_cas_OK = true;
+	}
+
+	if (loc_cnt == 2)
+	{
+		Serial.println("[10sek] Odpajam WIFI, lebo wifi nieje: WL_CONNECTED ");
+		WiFi.disconnect(1, 1);
+	}
+
+	if (loc_cnt == 3)
+	{
+		loc_cnt = 255;
+		WiFi.mode(WIFI_MODE_APSTA);
+		Serial.println("znovu -Creating Accesspoint");
+		WiFi.softAP(soft_ap_ssid, soft_ap_password, 7, 0, 3);
+
+		if (!WiFi.config(local_IP, gateway, subnet, primaryDNS, secondaryDNS))
+		{
+			Serial.println("STA Failed to configure");
+		}
+		Serial.println("znovu -Wifi begin");
+		WiFi.begin(NazovSiete, Heslo);
+		u8_t aa = 0;
+		while (WiFi.waitForConnectResult() != WL_CONNECTED && aa < 2)
+		{
+			Serial.print(".");
+			aa++;
+		}
 	}
 }
 
@@ -504,10 +581,10 @@ void OdosliCasDoWS(void)
 {
 	String DenvTyzdni = "! Čas nedostupný !";
 	char loc_buf[60];
-	DenvTyzdni = ConvetWeekDay_UStoSK(&timeinfo);
+	DenvTyzdni = ConvetWeekDay_UStoSK(&MyRTC_cas);
 	char hodiny[5];
 	char minuty[5];
-	strftime(loc_buf, sizeof(loc_buf), " %H:%M    %d.%m.%Y    ", &timeinfo);
+	strftime(loc_buf, sizeof(loc_buf), " %H:%M    %d.%m.%Y    ", &MyRTC_cas);
 
 	ObjDatumCas["Cas"] = loc_buf + DenvTyzdni; // " 11:22 Stredaaaa";
 	String jsonString = JSON.stringify(ObjDatumCas);
@@ -548,16 +625,39 @@ void FuncServer_On(void)
 				  esp_restart();
 			  });
 
-	server.on("/status",
-			  HTTP_GET,
-			  [](AsyncWebServerRequest *request)
+	server.on("/status", HTTP_GET, [](AsyncWebServerRequest *request)
 			  {
 				  char ttt[500];
+				  //u16_t citac = EEPROM.readUShort (EE_citacZapisuDoEEPORM);
+				  //u16_t citac2 = EEPROM.readUShort (EE_citac2_ZapisuDoEEPORM);
 
-				  sprintf(ttt,
-						  "Firmware :%s<br>Citac:%u",
-						  firmwaree,
-						  cnt);
+				  char loc_buf[20];
+				  char loc_buf1[60];
+				  char loc_buf2[100];
+				  if (Internet_CasDostupny == true)
+				  {
+					  sprintf(loc_buf, "dostupny :-)");
+				  }
+				  else
+				  {
+					  sprintf(loc_buf, "nedostupny!!");
+				  }
+
+				  if (RTC_cas_OK == false)
+				  {
+					  sprintf(loc_buf2, "[RTC_cas_OK == flase] RTC NE-maju realny cas!!. RTC hodnota: ");
+				  }
+				  else
+				  {
+					  sprintf(loc_buf2, "[RTC_cas_OK == true] RTC hodnota: ");
+				  }
+				  strftime(loc_buf1, sizeof(loc_buf1), " %H:%M:%S    %d.%m.%Y    ", &MyRTC_cas);
+
+				  sprintf(ttt, "Firmware :%s<br>"
+							   "Sila signalu WIFI(-30 je akoze OK):%i<br>"
+							   "Internet cas: %s<br>"
+							   "%s %s",
+						  firmware, WiFi.RSSI(), loc_buf, loc_buf2, loc_buf1);
 
 				  request->send(200, "text/html", ttt);
 			  });
@@ -605,6 +705,8 @@ void ESPinfo(void)
 	esp_chip_info_t chip_info;
 	esp_chip_info(&chip_info);
 	Serial.println("\r\n*******************************************************************");
+	Serial.print("ESP Board MAC Address:  ");
+	Serial.println(WiFi.macAddress());
 	Serial.println("\r\nHardware info");
 	Serial.printf("%d cores Wifi %s%s\n",
 				  chip_info.cores,
@@ -860,4 +962,13 @@ void encoder()
 	{
 		encoder_pos--;
 	}
+}
+
+void RS485_TxModee(u8 *timeout)
+{
+    *timeout = RS485_TimeOut;
+	RS485_TxMode;
+
+	Serial.print("[Func:RS485_TxModee]  timeout davam:");
+	Serial.println( *timeout);
 }

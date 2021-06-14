@@ -84,6 +84,7 @@ typedef struct
 
 String ConvetWeekDay_UStoCZ(tm *timeInfoPRT);
 String ConvetWeekDay_UStoSK(tm *timeInfoPRT);
+void Loop_1ms(void);
 void Loop_10ms(void);
 void Loop_100ms(void);
 void Loop_1sek(void);
@@ -101,4 +102,5 @@ void OdosliStrankeVytapeniData(void);
 String handle_Zadavanie_IP_setting(void);
 void handle_Nastaveni(AsyncWebServerRequest *request);
 void encoder();
+void RS485_TxModee(u8 *timeout);
 #endif
