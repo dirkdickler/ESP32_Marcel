@@ -21,7 +21,7 @@
 #include "time.h"
 #include <Ticker.h>
 #include <EEPROM.h>
-#include "index.htm"
+#include "index.h"
 #include "main.h"
 #include "define.h"
 
@@ -49,7 +49,7 @@ char Heslo[30];
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
 
-JSONVar myObject, myObject2, ObjDatumCas, ObjTopeni;
+JSONVar myObject, myObject2, ObjDatumCas, ObjTopeni, JSON_DebugMsg;
 Ticker timer_1ms(Loop_1ms, 1, 0, MILLIS);
 Ticker timer_10ms(Loop_10ms, 10, 0, MILLIS);
 Ticker timer_100ms(Loop_100ms, 300, 0, MILLIS);
@@ -85,6 +85,7 @@ u16_t cnt = 0;
 
 static TERMOSTAT_t room[12];
 char gloBuff[200];
+bool LogEnebleWebPage = false;
 
 void notifyClients()
 {
@@ -304,8 +305,8 @@ void loop()
 }
 
 void Loop_1ms()
-{   
-	if (RS485_toRx_timeout  && Serial1.availableForWrite() ==127)  //127 bytes je: PDF • 512 x 8-bit RAM shared by TX FIFOs and RX FIFOs of two UART controllers  128TX0 + 128Rx0 + 128TX1 + 128Rx1
+{
+	if (RS485_toRx_timeout && Serial1.availableForWrite() == 127) //127 bytes je: PDF • 512 x 8-bit RAM shared by TX FIFOs and RX FIFOs of two UART controllers  128TX0 + 128Rx0 + 128TX1 + 128Rx1
 	{
 		if (--RS485_toRx_timeout == 0)
 		{
@@ -317,7 +318,7 @@ void Loop_1ms()
 
 void Loop_10ms()
 {
-   #define indexData 14
+#define indexData 14
 	static uint8_t TimeOut_RXdata = 0;	 //musi byt static lebo sem skaces z Loop
 	static uint16_t KolkkoNplnenych = 0; //musi byt static lebo sem skaces z Loop
 	static char budd[100];				 //musi byt static lebo sem skaces z Loop
@@ -434,16 +435,16 @@ void Loop_1sek(void)
 	MyRTC_cas = rtc.getTimeStruct();
 	//Serial.print("[1sek Loop]  free Heap je:");
 	//Serial.println(ESP.getFreeHeap());
-	
-	//Serial.print("RS485 available: ");
-	//Serial.println(Serial1.availableForWrite());
+
+	String rr = "[1sek Loop]  mam 1 sek. sila signalu: " + (String)WiFi.RSSI() + "dBm\r\n";
+	SendDebugMsgToWebSocket(rr);
 }
 
 void Loop_10sek(void)
 {
 	static u8_t loc_cnt = 0;
 	Serial.println("\r\n[10sek Loop]  Mam Loop 10 sek..........");
-
+	SendDebugMsgToWebSocket("[10sek Loop]  mam 1 sek....\r\n");
 	Serial.print("Wifi status:");
 	Serial.println(WiFi.status());
 
@@ -593,6 +594,16 @@ void OdosliCasDoWS(void)
 	ws.textAll(jsonString);
 }
 
+void SendDebugMsgToWebSocket(String textik)
+{
+	if (LogEnebleWebPage == true)
+	{
+		JSON_DebugMsg["DebugMsg"] = textik;
+		String jsonString = JSON.stringify(JSON_DebugMsg);
+		ws.textAll(jsonString);
+	}
+}
+
 void FuncServer_On(void)
 {
 	server.on("/",
@@ -686,6 +697,13 @@ void FuncServer_On(void)
 			  [](AsyncWebServerRequest *request)
 			  {
 				  request->send_P(200, "text/html", zaluzie_Main);
+			  });
+	server.on("/debug",
+			  HTTP_GET,
+			  [](AsyncWebServerRequest *request)
+			  {
+				  LogEnebleWebPage = true;
+				  request->send_P(200, "text/html", DebugLog_html);
 			  });
 }
 
@@ -966,9 +984,9 @@ void encoder()
 
 void RS485_TxModee(u8 *timeout)
 {
-    *timeout = RS485_TimeOut;
+	*timeout = RS485_TimeOut;
 	RS485_TxMode;
 
 	Serial.print("[Func:RS485_TxModee]  timeout davam:");
-	Serial.println( *timeout);
+	Serial.println(*timeout);
 }

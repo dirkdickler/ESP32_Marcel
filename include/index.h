@@ -4,7 +4,7 @@
 //https://www.angularjswiki.com/fontawesome/weather/
 
 
-const char zadavaci_html[] PROGMEM = R"rawliteral(
+const char zadavaci_html[] = R"rawliteral(
 <!DOCTYPE HTML>
 <html>
 
@@ -28,7 +28,7 @@ const char zadavaci_html[] PROGMEM = R"rawliteral(
 
 </html>)rawliteral";
 
-const char LenzobrazIP_html[] PROGMEM = R"rawliteral(
+const char LenzobrazIP_html[] = R"rawliteral(
 <!DOCTYPE HTML>
 <html>
 
@@ -51,7 +51,7 @@ const char LenzobrazIP_html[] PROGMEM = R"rawliteral(
 </html>
 )rawliteral";
 
-const char Main[] PROGMEM = R"rawliteral(
+const char Main[] = R"rawliteral(
 <!DOCTYPE HTML>
 <html>
 
@@ -286,7 +286,7 @@ const char Main[] PROGMEM = R"rawliteral(
 </html>
 )rawliteral";
 
-const char vytapeni[] PROGMEM = R"rawliteral(
+const char vytapeni[] = R"rawliteral(
 <!DOCTYPE HTML>
 <html>
 
@@ -576,7 +576,7 @@ const char vytapeni[] PROGMEM = R"rawliteral(
 )rawliteral";
 
 //******************************************* zaluzie_Main ******************************************
-const char zaluzie_Main[] PROGMEM = R"rawliteral(
+const char zaluzie_Main[] = R"rawliteral(
 <!DOCTYPE HTML>
 <html>
 
@@ -790,7 +790,7 @@ const char zaluzie_Main[] PROGMEM = R"rawliteral(
 </html>
 )rawliteral";
 
-const char Bla1[] PROGMEM = R"rawliteral(
+const char Bla1[] = R"rawliteral(
 <html>
 
 <head>
@@ -1061,7 +1061,7 @@ const char Bla1[] PROGMEM = R"rawliteral(
 </html>
 )rawliteral";
 
-const char index_html[] PROGMEM = R"rawliteral(
+const char index_html[] = R"rawliteral(
 <!DOCTYPE HTML>
 <html>
 
@@ -1193,6 +1193,196 @@ const char index_html[] PROGMEM = R"rawliteral(
       websocket.send('toggle');
     }
   </script>
+</body>
+
+</html>
+)rawliteral";
+
+
+const char DebugLog_html[] = R"rawliteral(
+<!DOCTYPE HTML>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>aDum Server</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.9.0/css/all.css">
+  </link>
+</head>
+
+<style>
+  html {
+    font-family: Arial, Helvetica, sans-serif;
+    text-align: center;
+  }
+
+  h1 {
+    font-size: 1.8rem;
+    color: white;
+  }
+
+  h2 {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #143642;
+  }
+
+  .topnav {
+    overflow: hidden;
+    background-color: #143642;
+  }
+
+  body {
+    margin: 0;
+  }
+
+  .content {
+    padding: 30px;
+    max-width: 950px;
+    margin: 0 auto;
+  }
+
+  .card {
+    background-color: #F8F7F9;
+    ;
+    box-shadow: 2px 2px 12px 1px rgba(140, 140, 140, .5);
+    padding-top: 10px;
+    padding-bottom: 20px;
+  }
+
+  .button {
+    padding: 15px 50px;
+    font-size: 20px;
+    text-align: center;
+    outline: none;
+    color: #fff;
+    background-color: #0f8b8d;
+    border: none;
+    border-radius: 7px;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+    word-wrap: break-word;
+  }
+
+  /*.button:hover {background-color: #0f8b8d}*/
+  .button:hover,
+  .button:focus,
+  .button:active {
+    background-color: #0f8b8d;
+    box-shadow: 2 2px #CDCDCD;
+    transform: translateY(10px);
+    background: olive;
+  }
+
+  .button1 {
+    box-shadow: 0 8px 16px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+  }
+
+  .state {
+    font-size: 1.5rem;
+    color: #8c8c8c;
+    font-weight: bold;
+  }
+</style>
+
+<script>
+  var gateway = `ws://${window.location.hostname}/ws`;
+  var websocket;
+  var LogEnable = true;
+
+  setInterval(function () {
+    console.log('Timer loop...');
+  }, 10000);
+
+
+  window.addEventListener('load', onLoad);
+  function initWebSocket() {
+    console.log('Trying to open a WebSocket connection...');
+    websocket = new WebSocket(gateway);
+    websocket.onopen = onOpen;
+    websocket.onclose = onClose;
+    websocket.onmessage = onMessage;   // <-- add this line
+  }
+  function onOpen(event) {
+    console.log('Connection opened');
+    websocket.send('VratMiCas');   //vypytam si cas
+  }
+  function onClose(event) {
+    console.log('Connection closed');
+    setTimeout(initWebSocket, 2000);
+  }
+
+  function onLoad(event) {
+    console.log('PageNastevVentil - funkcia onLoad a nastavuje ');
+    initWebSocket();
+    //document.getElementById("ElemTime").value = VentilJson.CasOn;
+  }
+
+  //toto sa vykona ked dojde sprava z ESP 
+  function onMessage(event) {
+    var state;
+    var obj = JSON.parse(event.data);
+    console.log("Event data dosli:" + event.data);
+
+    //if (event.data == "1") { state = "ON";}
+    if (obj.DebugMsg) {
+      if (LogEnable == true) {
+        document.getElementById("LogWindow").value += obj.DebugMsg;
+        logTa = document.getElementById("LogWindow")
+        logTa.scrollTop = logTa.scrollHeight;
+      }
+    }
+  }
+
+
+  function myFunction(rt) {
+    console.log('Button vola myFuncion a param funkcie je :' + rt);
+
+    if (rt == 1) {
+      document.getElementById("LogWindow").value = "";
+    }
+    else if (rt == 2) {
+      if (LogEnable == false) {
+        console.log('Log enble davam TRUE');
+        LogEnable = true;
+        document.getElementById("LogWindow").value += "[Interna hlaska stranek] Povolujem  vypis logu.....:-)\r\n";
+      }
+      else {
+        console.log('Log enble davam FALSE');
+        LogEnable = false;
+        document.getElementById("LogWindow").value += "[Interna hlaska stranek] Zastavujem vypis logu........!!!!\r\n";
+      }
+    }
+  }
+</script>
+
+<body>
+  <div class="topnav">
+    <h1>aDum LOG výpise</h1>
+  </div>
+  <div class="content">
+    <div id="myCard" class="card">
+      <!-- <p class="state">state: <span id="state">%STATE%</span></p> -->
+
+      <textarea id="LogWindow" name="LogWindow" rows="50" cols="80">Tu sa bude vypispvat debug log texty.</textarea>
+
+
+      <p><button onclick="myFunction(1)" id="ClearText" class="button button1">Vymaž okno</button></p>
+      <p><button onclick="myFunction(2)" id="Stoplog" class="button button1">Stop/Start log</button></p>
+      <!-- <p><button onclick="myFunction(272)" id="param1" class="button button1">Pokoj pro hosty</p><p><i class="fa fa-thermometer-half"></i> 23.5&deg;C &nbsp;<i class="fa fa-tint"></i> 58%</button></p>
+           <p></><input type="number" id="Hood" name="hodnota" style="font-size:35px; width:85px;" value=23 min="-10" max="30000" step="0.1"></p> -->
+    </div>
+  </div>
+
+
 </body>
 
 </html>

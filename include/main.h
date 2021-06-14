@@ -90,6 +90,7 @@ void Loop_100ms(void);
 void Loop_1sek(void);
 void Loop_10sek(void);
 void OdosliCasDoWS(void);
+void SendDebugMsgToWebSocket(String textik);
 void FuncServer_On(void);
 
 void testik(void);
