@@ -344,16 +344,23 @@ void Loop_10ms()
 		if (--TimeOut_RXdata == 0)
 		{
 			{
-				Serial.printf("[Serial 1] doslo:%u a to %s\n", KolkkoNplnenych, budd);
+				sprintf(temp, "[RS485] doslo:%u a to %s\r\n", KolkkoNplnenych, budd);
+				DebugMsgToWebSocket(temp);
+				//Serial.printf(temp);
 
 				RS485_PACKET_t *loc_paket;
 				loc_paket = (RS485_PACKET_t *)budd;
 
-				Serial.printf("[Serial 1]  DST adresa je:%u \n", loc_paket->DSTadress);
+				sprintf(temp, "[RS485]  DST adresa je:%u\r\n", loc_paket->DSTadress);
+				DebugMsgToWebSocket(temp);
+				//Serial.printf(temp);
 
 				if (loc_paket->SCRadress == 10)
 				{
-					Serial.printf("[Serial 1] Mam adresu 10 a idem ulozit data z RS485");
+
+					sprintf(temp, "[RS485] Mam adresu 10 a idem ulozit data z RS485\r\n");
+					DebugMsgToWebSocket(temp);
+					//Serial.printf(temp);
 
 					room[0].T_podlaha = budd[indexData + 4];
 					room[0].T_podlaha <<= 8;
@@ -437,14 +444,14 @@ void Loop_1sek(void)
 	//Serial.println(ESP.getFreeHeap());
 
 	String rr = "[1sek Loop]  mam 1 sek. sila signalu: " + (String)WiFi.RSSI() + "dBm\r\n";
-	SendDebugMsgToWebSocket(rr);
+	DebugMsgToWebSocket(rr);
 }
 
 void Loop_10sek(void)
 {
 	static u8_t loc_cnt = 0;
 	Serial.println("\r\n[10sek Loop]  Mam Loop 10 sek..........");
-	SendDebugMsgToWebSocket("[10sek Loop]  mam 1 sek....\r\n");
+	DebugMsgToWebSocket("[10sek Loop]  mam 1 sek....\r\n");
 	Serial.print("Wifi status:");
 	Serial.println(WiFi.status());
 
@@ -594,11 +601,12 @@ void OdosliCasDoWS(void)
 	ws.textAll(jsonString);
 }
 
-void SendDebugMsgToWebSocket(String textik)
+void DebugMsgToWebSocket(String textik)
 {
 	if (LogEnebleWebPage == true)
 	{
-		JSON_DebugMsg["DebugMsg"] = textik;
+		String sprava = rtc.getTime("%H:%M:%S ");
+		JSON_DebugMsg["DebugMsg"] = sprava + textik;
 		String jsonString = JSON.stringify(JSON_DebugMsg);
 		ws.textAll(jsonString);
 	}
