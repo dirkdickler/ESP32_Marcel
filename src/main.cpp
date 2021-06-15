@@ -441,7 +441,7 @@ void Loop_1sek(void)
 	//Serial.print("[1sek Loop]  free Heap je:");
 	//Serial.println(ESP.getFreeHeap());
 
-	String rr = "[1sek Loop] sila signalu: " + (String)WiFi.RSSI() + "dBm  a Heap:"+ (String)ESP.getFreeHeap() +"kB\r\n ";
+	String rr = "[1sek Loop] signalu: " + (String)WiFi.RSSI() + "dBm  a Heap: "+ (String)ESP.getFreeHeap() +" kB\r\n ";
 	DebugMsgToWebSocket(rr);
 }
 
