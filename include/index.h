@@ -3,7 +3,8 @@
 //tu je link na ikony
 //https://www.angularjswiki.com/fontawesome/weather/
 
-
+/* #include <Arduino.h>*/
+  
 const char zadavaci_html[] = R"rawliteral(
 <!DOCTYPE HTML>
 <html>

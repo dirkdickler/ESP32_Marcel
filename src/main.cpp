@@ -355,13 +355,11 @@ void Loop_10ms()
 				DebugMsgToWebSocket(temp);
 				//Serial.printf(temp);
 
+				sprintf(temp, "[RS485] Mam adresu %u a idem ulozit data z RS485\r\n", loc_paket->SCRadress);
+				DebugMsgToWebSocket(temp);
+
 				if (loc_paket->SCRadress == 10)
 				{
-
-					sprintf(temp, "[RS485] Mam adresu 10 a idem ulozit data z RS485\r\n");
-					DebugMsgToWebSocket(temp);
-					//Serial.printf(temp);
-
 					room[0].T_podlaha = budd[indexData + 4];
 					room[0].T_podlaha <<= 8;
 					room[0].T_podlaha += budd[indexData + 3];
@@ -443,14 +441,14 @@ void Loop_1sek(void)
 	//Serial.print("[1sek Loop]  free Heap je:");
 	//Serial.println(ESP.getFreeHeap());
 
-	String rr = "[1sek Loop]  mam 1 sek. sila signalu: " + (String)WiFi.RSSI() + "dBm\r\n";
+	String rr = "[1sek Loop] sila signalu: " + (String)WiFi.RSSI() + "dBm  a Heap:"+ (String)ESP.getFreeHeap() +"kB\r\n ";
 	DebugMsgToWebSocket(rr);
 }
 
 void Loop_10sek(void)
 {
 	static u8_t loc_cnt = 0;
-	Serial.println("\r\n[10sek Loop]  Mam Loop 10 sek..........");
+	//Serial.println("\r\n[10sek Loop]  Mam Loop 10 sek..........");
 	DebugMsgToWebSocket("[10sek Loop]  mam 1 sek....\r\n");
 	Serial.print("Wifi status:");
 	Serial.println(WiFi.status());
