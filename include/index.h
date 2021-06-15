@@ -125,11 +125,13 @@ const char Main[] = R"rawliteral(
     word-wrap: break-word;
   }
 
-  /*.button:hover {background-color: #0f8b8d}*/
+  .button:hover,
+  .button:focus,
   .button:active {
     background-color: #0f8b8d;
     box-shadow: 2 2px #CDCDCD;
-    transform: translateY(2px);
+    transform: translateY(10px);
+    background: olive;
   }
 
   .button1 {
@@ -360,11 +362,12 @@ const char vytapeni[] = R"rawliteral(
     word-wrap: break-word;
   }
 
-  /*.button:hover {background-color: #0f8b8d}*/
+  .button:hover,
   .button:active {
     background-color: #0f8b8d;
     box-shadow: 2 2px #CDCDCD;
-    transform: translateY(2px);
+    transform: translateY(10px);
+    background: olive;
   }
 
   .button1 {
@@ -643,6 +646,14 @@ const char zaluzie_Main[] = R"rawliteral(
 
   }
 
+  .button:hover,
+  .button:active {
+    background-color: #0f8b8d;
+    box-shadow: 2 2px #CDCDCD;
+    transform: translateY(10px);
+    background: olive;
+  }
+
   .button_stin {
     box-shadow: 0 8px 16px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
   }
@@ -910,14 +921,12 @@ const char Bla1[] = R"rawliteral(
     height: 125px;
   }
 
-  .button:hover {
-    background-color: #3e8e41
-  }
-
+  .button:hover,
   .button:active {
     background-color: #0f8b8d;
-    box-shadow: 0 5px #666;
-    transform: translateY(4px);
+    box-shadow: 2 2px #CDCDCD;
+    transform: translateY(10px);
+    background: olive;
   }
 
   .button1 {
@@ -1129,11 +1138,12 @@ const char index_html[] = R"rawliteral(
     -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
   }
 
-  /*.button:hover {background-color: #0f8b8d}*/
+  .button:hover,
   .button:active {
     background-color: #0f8b8d;
     box-shadow: 2 2px #CDCDCD;
-    transform: translateY(2px);
+    transform: translateY(10px);
+    background: olive;
   }
 
   .state {
@@ -1255,13 +1265,13 @@ const char DebugLog_html[] = R"rawliteral(
 
   .button {
     padding: 15px 50px;
-    font-size: 20px;
+    font-size: 24px;
     text-align: center;
     outline: none;
     color: #fff;
     background-color: #0f8b8d;
     border: none;
-    border-radius: 7px;
+    border-radius: 5px;
     -webkit-touch-callout: none;
     -webkit-user-select: none;
     -khtml-user-select: none;
@@ -1269,12 +1279,9 @@ const char DebugLog_html[] = R"rawliteral(
     -ms-user-select: none;
     user-select: none;
     -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
-    word-wrap: break-word;
   }
 
-  /*.button:hover {background-color: #0f8b8d}*/
   .button:hover,
-  .button:focus,
   .button:active {
     background-color: #0f8b8d;
     box-shadow: 2 2px #CDCDCD;
