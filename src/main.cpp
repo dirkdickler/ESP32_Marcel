@@ -353,7 +353,7 @@ void Loop_10ms()
 #define indexData 14
 	static uint8_t TimeOut_RXdata = 0;	 //musi byt static lebo sem skaces z Loop
 	static uint16_t KolkkoNplnenych = 0; //musi byt static lebo sem skaces z Loop
-	static char budd[100];				 //musi byt static lebo sem skaces z Loop
+	static char budd[250];				 //musi byt static lebo sem skaces z Loop
 
 	uint16_t aktualny;
 	char temp[200];
@@ -365,7 +365,14 @@ void Loop_10ms()
 		//Serial2.readBytes (temp, aktualny);
 		for (uint16_t i = 0; i < aktualny; i++)
 		{
-			budd[KolkkoNplnenych + i] = Serial1.read();
+			if ((KolkkoNplnenych + aktualny) < sizeof(budd))
+			{
+				budd[KolkkoNplnenych + i] = Serial1.read();
+			}
+			else
+			{
+				Serial1.read();
+			}
 		}
 		KolkkoNplnenych += aktualny;
 		TimeOut_RXdata = 5;
