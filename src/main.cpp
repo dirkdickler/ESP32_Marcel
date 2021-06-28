@@ -21,7 +21,7 @@
 #include "time.h"
 #include <Ticker.h>
 #include <EEPROM.h>
-#include "index.h"
+#include "index.html"
 #include "main.h"
 #include "define.h"
 
@@ -113,18 +113,50 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
 			OdosliStrankeVytapeniData();
 		}
 
-		else if (strcmp((char *)data, "ZaluzieOtvorVsetky") == 0)
+		else if (strcmp((char *)data, "ZaluzieAllOpen") == 0)
 		{
-			Serial.println("stranky poslali: ZaluzieOtvorVsetky ");
+			//Send:02 43 64 00 02 00 0c 80 0c 00 00 00 bc
+			u8 loc_buf[14] = {0x2, 0x43, 0x64, 0x0, 0x2, 0x0, 0x0c, 0x80, 0x0c, 0x0, 0x0, 0x0, 0xbc};
+
+			Serial.println("stranky poslali: ZaluzieVsetkyOtvor");
 			RS485_TxModee(&RS485_toRx_timeout);
-			Serial1.println("test RS485..ZaluzieOtvorVsetky zaluzky.. ");
+			//Serial1.print("test RS485..Zaluzie All open.. ");
+			for (u8 i = 0; i < 13; i++)
+			{
+				Serial1.write(loc_buf[i]);
+			}
+			String rr = "[HndlWebSocket] To RS485 posielam OTVOR zaluzie\r\n";
+			DebugMsgToWebSocket(rr);
+		}
+		else if (strcmp((char *)data, "ZaluzieAllStop") == 0)
+		{
+			//Send:02 43 64 00 02 00 0e 80 0e 00 00 00 b8
+			u8 loc_buf[14] = {0x2, 0x43, 0x64, 0x0, 0x2, 0x0, 0x0e, 0x80, 0x0e, 0x0, 0x0, 0x0, 0xb8};
+			Serial.println("stranky poslali: ZaluzieAllStop ");
+			RS485_TxModee(&RS485_toRx_timeout);
+			//Serial1.println("test RS485..Zaluzie All Stop.. ");
+			for (u8 i = 0; i < 13; i++)
+			{
+				Serial1.write(loc_buf[i]);
+			}
+
+			String rr = "[HndlWebSocket] To RS485 posielam STOP zaluzie\r\n";
+			DebugMsgToWebSocket(rr);
 		}
 
-		else if (strcmp((char *)data, "ZaluzieZatvorVsetky") == 0)
+		else if (strcmp((char *)data, "ZaluzieAllClose") == 0)
 		{
-			Serial.println("stranky poslali: ZaluzieZatvorVsetky ");
+			//Send:02 43 64 00 02 00 0d 80 0d 00 00 00 ba
+			u8 loc_buf[14] = {0x02, 0x43, 0x64, 0x0, 0x2, 0x0, 0x0d, 0x80, 0x0d, 0x0, 0x0, 0x0, 0xba};
+			Serial.println("stranky poslali: ZaluzieVsetky zatvor");
 			RS485_TxModee(&RS485_toRx_timeout);
-			Serial1.println("test RS485..Zaluzie-ZatvorVsetky zaluzky..");
+			//Serial1.println("test RS485..Zaluzie All close.. ");
+			for (u8 i = 0; i < 13; i++)
+			{
+				Serial1.write(loc_buf[i]);
+			}
+			String rr = "[HndlWebSocket] To RS485 posielam ZATVOR zaluzie\r\n";
+			DebugMsgToWebSocket(rr);
 		}
 	}
 }
@@ -441,7 +473,7 @@ void Loop_1sek(void)
 	//Serial.print("[1sek Loop]  free Heap je:");
 	//Serial.println(ESP.getFreeHeap());
 
-	String rr = "[1sek Loop] signalu: " + (String)WiFi.RSSI() + "dBm  a Heap: "+ (String)ESP.getFreeHeap() +" kB\r\n ";
+	String rr = "[1sek Loop] signalu: " + (String)WiFi.RSSI() + "dBm  a Heap: " + (String)ESP.getFreeHeap() + " kB\r\n";
 	DebugMsgToWebSocket(rr);
 }
 

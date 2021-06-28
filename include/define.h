@@ -16,7 +16,7 @@ const int RS485_DirPin = 16;
 
 
 #define WDT_TIMEOUT 5
-#define firmware "ver20210614_1"
+#define firmware "ver20210614_1beta"
 
 
 //EEPROM adrese
