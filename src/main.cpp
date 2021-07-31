@@ -115,9 +115,8 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
 
 		else if (strcmp((char *)data, "ZaluzieAllOpen") == 0)
 		{
-			//Send:02 43 64 00 02 00 0c 80 0c 00 00 00 bc
-			u8 loc_buf[14] = {0x2, 0x43, 0x64, 0x0, 0x2, 0x0, 0x0c, 0x80, 0x0c, 0x0, 0x0, 0x0, 0xbc};
-
+			//Send:02 43 64 00 02 00 0e 80 0e 00 00 00 b8
+			u8 loc_buf[14] = {0x2, 0x43, 0x64, 0x0, 0x2, 0x0, 0x0e, 0x80, 0x0e, 0x0, 0x0, 0x0, 0xb8};
 			Serial.println("stranky poslali: ZaluzieVsetkyOtvor");
 			RS485_TxModee(&RS485_toRx_timeout);
 			//Serial1.print("test RS485..Zaluzie All open.. ");
@@ -130,8 +129,8 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
 		}
 		else if (strcmp((char *)data, "ZaluzieAllStop") == 0)
 		{
-			//Send:02 43 64 00 02 00 0e 80 0e 00 00 00 b8
-			u8 loc_buf[14] = {0x2, 0x43, 0x64, 0x0, 0x2, 0x0, 0x0e, 0x80, 0x0e, 0x0, 0x0, 0x0, 0xb8};
+			//Send:02 43 64 00 02 00 0c 80 0c 00 00 00 bc
+			u8 loc_buf[14] = {0x2, 0x43, 0x64, 0x0, 0x2, 0x0, 0x0c, 0x80, 0x0c, 0x0, 0x0, 0x0, 0xbc};
 			Serial.println("stranky poslali: ZaluzieAllStop ");
 			RS485_TxModee(&RS485_toRx_timeout);
 			//Serial1.println("test RS485..Zaluzie All Stop.. ");
