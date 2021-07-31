@@ -227,14 +227,14 @@ void setup()
 
 	rtc.setTime(30, 24, 15, 17, 1, 2021); // 17th Jan 2021 15:24:30
 
-#define SD_ss 10
-#define SD_mosi 11
-#define SD_sck 12
-#define SD_miso 13
-// #define SD_miso 4
-// #define SD_mosi 2
-// #define SD_sck 3
-// #define SD_ss 1
+	// #define SD_ss 10
+	// #define SD_mosi 11
+	// #define SD_sck 12
+	// #define SD_miso 13
+#define SD_miso 4
+#define SD_mosi 2
+#define SD_sck 3
+#define SD_ss 1
 
 	SDSPI.setFrequency(3500000);
 	SDSPI.begin(SD_sck, SD_miso, SD_mosi, -1);
