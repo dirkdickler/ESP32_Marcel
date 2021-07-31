@@ -213,7 +213,7 @@ String processor(const String &var)
 void setup()
 {
 	Serial.begin(115200);
-	Serial.println("Spustam applikaciu.123");
+	Serial.println("Spustam applikaciu.1222");
 
 	pinMode(RS485_DirPin, OUTPUT);
 	pinMode(LedOrange, OUTPUT);
@@ -221,16 +221,20 @@ void setup()
 	//Serial1.println("test RS485.. Begin");
 	digitalWrite(LedOrange, LOW);
 
-	attachInterrupt(digitalPinToInterrupt(ENCODER1), encoder, RISING);
-	pinMode(ENCODER1, INPUT);
-	pinMode(ENCODER2, INPUT);
+	//attachInterrupt(digitalPinToInterrupt(ENCODER1), encoder, RISING);
+	//pinMode(ENCODER1, INPUT);
+	//pinMode(ENCODER2, INPUT);
 
 	rtc.setTime(30, 24, 15, 17, 1, 2021); // 17th Jan 2021 15:24:30
 
-#define SD_miso 13
+#define SD_ss 10
 #define SD_mosi 11
 #define SD_sck 12
-#define SD_ss 10
+#define SD_miso 13
+// #define SD_miso 4
+// #define SD_mosi 2
+// #define SD_sck 3
+// #define SD_ss 1
 
 	SDSPI.setFrequency(3500000);
 	SDSPI.begin(SD_sck, SD_miso, SD_mosi, -1);
@@ -244,25 +248,55 @@ void setup()
 	{
 		Serial.println("Card Mount OK!!...");
 
+		uint8_t cardType = SD.cardType();
+
+		if (cardType == CARD_NONE)
+		{
+			Serial.println("No SD card attached");
+			return;
+		}
+
+		Serial.print("SD Card Type: ");
+		if (cardType == CARD_MMC)
+		{
+			Serial.println("MMC");
+		}
+		else if (cardType == CARD_SD)
+		{
+			Serial.println("SDSC");
+		}
+		else if (cardType == CARD_SDHC)
+		{
+			Serial.println("SDHC");
+		}
+		else
+		{
+			Serial.println("UNKNOWN");
+		}
+
+		uint64_t cardSize = SD.cardSize() / (1024 * 1024);
+		Serial.printf("SD Card Size: %lluMB\n", cardSize);
+
 		File profile = SD.open("/IPCONFIG.TXT", FILE_READ);
 		Serial.printf("Velkost subora je :%lu\r\n", profile.size());
 		if (!profile)
 		{
 			Serial.println("Opening file to read failed");
-			return;
 		}
-
-		Serial.println("File Content:");
-
-		while (profile.available())
+		else
 		{
+			Serial.println("File Content:");
+
 			while (profile.available())
 			{
-				Serial.write(profile.read());
+				while (profile.available())
+				{
+					Serial.write(profile.read());
+				}
+				Serial.println("");
+				Serial.println("File read done");
+				Serial.println("=================");
 			}
-			Serial.println("");
-			Serial.println("File read done");
-			Serial.println("=================");
 		}
 	}
 
