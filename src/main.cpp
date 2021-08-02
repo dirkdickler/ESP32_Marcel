@@ -25,7 +25,7 @@
 #include "main.h"
 #include "define.h"
 
-#include "FS.h"
+#include "FS.h" 
 #include "SD.h"
 #include "SPI.h"
 #include <SoftwareSerial.h>
@@ -33,7 +33,7 @@
 
 #define ENCODER1 2
 #define ENCODER2 3
-volatile long int encoder_pos = 0;
+volatile long int encoder_pos = 0; 
 
 // Replace with your network credentials
 //const char* ssid = "Grabcovi";
