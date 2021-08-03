@@ -221,7 +221,7 @@ void setup()
 	//Serial1.println("test RS485.. Begin");
 	digitalWrite(LedOrange, LOW);
 
-	//attachInterrupt(digitalPinToInterrupt(ENCODER1), encoder, RISING);
+	//attachInterrupt(digitalPinToInterrupt(ENCODER1), encoder, RISING); //ISR
 	//pinMode(ENCODER1, INPUT);
 	//pinMode(ENCODER2, INPUT);
 
