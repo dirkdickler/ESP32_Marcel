@@ -213,7 +213,7 @@ String processor(const String &var)
 void setup()
 {
 	Serial.begin(115200);
-	Serial.println("Spustam applikaciu.1222");
+	Serial.println("Spustam applikaciu.1ab222");
 
 	pinMode(RS485_DirPin, OUTPUT);
 	pinMode(LedOrange, OUTPUT);
@@ -231,10 +231,10 @@ void setup()
 	// #define SD_mosi 11
 	// #define SD_sck 12
 	// #define SD_miso 13
-#define SD_miso 4
-#define SD_mosi 2
-#define SD_sck 3
-#define SD_ss 1
+#define SD_miso 11
+#define SD_mosi 12
+#define SD_sck 10
+#define SD_ss 8
 
 	SDSPI.setFrequency(3500000);
 	SDSPI.begin(SD_sck, SD_miso, SD_mosi, -1);
