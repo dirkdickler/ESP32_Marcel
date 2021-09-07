@@ -2,7 +2,7 @@
 #define __HelpFunction_H
 
 #include <Arduino.h>
-#include"constants.h"
+#include "constants.h"
 
 char **split(char **argv, int *argc, char *string, const char delimiter, int allowempty);
 
@@ -41,5 +41,6 @@ void handle_Nastaveni(AsyncWebServerRequest *request);
 void OdosliStrankeVytapeniData(void);
 uint8_t VypocitajSumuBuffera(uint8_t *buffer, uint16_t kolko);
 uint8_t KontrolaSumyBuffera(uint8_t *buffer, uint16_t kolko);
+void RS485sendBuffer(u8 buffr[], u8 pocetDat, u8 *timeToRx);
 void RS485_TxModee(u8 *timeout);
 #endif

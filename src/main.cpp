@@ -22,7 +22,6 @@
 #include "constants.h"
 #include "HelpFunction.h"
 
-
 // Replace with your network credentials
 //const char* ssid = "Grabcovi";
 //const char* password = "40177298";
@@ -57,7 +56,6 @@ IPAddress subnet(255, 255, 255, 0);
 IPAddress primaryDNS(8, 8, 8, 8);	//optional
 IPAddress secondaryDNS(8, 8, 4, 4); //optional
 
-
 struct tm MyRTC_cas;
 bool Internet_CasDostupny = false; //to je ze dostava cas z Inernetu
 bool RTC_cas_OK = false;		   //ze mam RTC fakt nastaveny bud z interneru, alebo nastaveny manualne
@@ -86,7 +84,7 @@ void setup()
 	Serial.begin(115200);
 	Serial.println("Spustam applikaciu...1XW");
 	System_init();
-    ESPinfo();
+	ESPinfo();
 
 	myObject["hello"] = " 11:22 Streda";
 	myObject["true"] = true;
@@ -95,7 +93,7 @@ void setup()
 
 	NacitajEEPROM_setting();
 	WiFi_init();
-	
+
 	timer_1ms.start();
 	timer_10ms.start();
 	timer_100ms.start();
@@ -103,7 +101,6 @@ void setup()
 	timer_10sek.start();
 	esp_task_wdt_init(WDT_TIMEOUT, true); //enable panic so ESP32 restarts
 	esp_task_wdt_add(NULL);				  //add current thread to WDT watch
-
 
 	//RS485 musis spustit az tu, lebo ak ju das hore a ESP ceka na konnect wifi, a pridu nejake data na RS485, tak FreeRTOS =RESET  asi overflow;
 	Serial1.begin(9600);
@@ -126,7 +123,7 @@ void loop()
 
 void Loop_1ms()
 {
-	if ( RS485_toRx_timeout ) // && Serial1.availableForWrite() == 127) //127 bytes je: PDF • 512 x 8-bit RAM shared by TX FIFOs and RX FIFOs of two UART controllers  128TX0 + 128Rx0 + 128TX1 + 128Rx1
+	if (RS485_toRx_timeout) //&& (Serial1.availableForWrite() >= 100) ) //127 bytes je: PDF • 512 x 8-bit RAM shared by TX FIFOs and RX FIFOs of two UART controllers  128TX0 + 128Rx0 + 128TX1 + 128Rx1
 	{
 		if (--RS485_toRx_timeout == 0)
 		{
@@ -173,7 +170,6 @@ void Loop_10ms()
 			{
 				sprintf(temp, "[RS485] doslo:%u a to %s\r\n", KolkkoNplnenych, budd);
 				DebugMsgToWebSocket(temp);
-				//Serial.printf(temp);
 
 				RS485_PACKET_t *loc_paket;
 				loc_paket = (RS485_PACKET_t *)budd;
@@ -184,7 +180,16 @@ void Loop_10ms()
 
 				sprintf(temp, "[RS485] Mam adresu %u a idem ulozit data z RS485\r\n", loc_paket->SCRadress);
 				DebugMsgToWebSocket(temp);
-                //02 43 64 00 0a 00 01 20 03 00 05 00 04 f0 01 01 01 02 01 02 01 02 01 02 01  toto nastaveni na room[0] tep a RH na 258 NEKONTROLUJEM sumu
+
+				sprintf(temp, "[RS485] CMD byte %u\r\n", loc_paket->CMD);
+				DebugMsgToWebSocket(temp);
+
+				if ((loc_paket->CMD & CMD_Reply) == CMD_Reply)
+				{
+					sprintf(temp, "[RS485] Reply od adrese %u\r\n", loc_paket->SCRadress);
+					DebugMsgToWebSocket(temp);
+				}
+				//02 43 64 00 0a 00 01 20 03 00 05 00 04 f0 01 01 01 02 01 02 01 02 01 02 01  toto nastaveni na room[0] tep a RH na 258 NEKONTROLUJEM sumu
 
 				if (loc_paket->SCRadress == 10)
 				{
@@ -300,7 +305,7 @@ void Loop_1sek(void)
 	char locBuf[50];
 	sprintf(locBuf, "%.3f", flt);
 	String rr = "[1sek Loop] signalu: " + (String)WiFi.RSSI() + "dBm  a Heap: " + locBuf + " kB " +
-				" Ine.. \r\n ";
+				" Ine..\r\n ";
 	DebugMsgToWebSocket(rr);
 }
 
@@ -314,7 +319,6 @@ void Loop_10sek(void)
 
 	WiFi_connect_sequencer();
 }
-
 
 void FuncServer_On(void)
 {
@@ -443,8 +447,7 @@ void ESPinfo(void)
 	Serial.println("\r\n*******************************************************************");
 }
 void DebugMsgToWebSocket(String textik)
-{   
-	return;
+{
 	if (LogEnebleWebPage == true)
 	{
 		String sprava = rtc.getTime("%H:%M:%S ");

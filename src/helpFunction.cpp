@@ -152,7 +152,7 @@ IPAddress str2IP(String str)
 	return ret;
 }
 
-//TODO tu pri tomto osoetri este ked nieje cas z WEBu tak sa to resetne 
+//TODO tu pri tomto osoetri este ked nieje cas z WEBu tak sa to resetne
 void OdosliCasDoWS(void)
 {
 	String DenvTyzdni = "! Čas nedostupný !";
@@ -255,7 +255,6 @@ void ScanInputs(void)
 	//Serial.println("[ScanInputs] begin..");
 	bool bolaZmenaVstupu = false;
 
-	
 	for (u8 i = 0; i < pocetDIN; i++)
 	{
 		DIN[i].zmena = Input_digital_filtering(&DIN[i], filterTime_DI);
@@ -328,6 +327,14 @@ int8_t NacitajEEPROM_setting(void)
 	}
 }
 
+void RS485sendBuffer(u8 buffr[], u8 pocetDat, u8 *timeToRx)
+{
+	for (u8 i = 0; i < pocetDat; i++)
+	{
+		RS485_TxModee(timeToRx);
+		Serial1.write(buffr[i]);
+	}
+}
 //** ked Webstrenaky - jejich ws posle nejake data napriklad "VratMiCas" tj ze strnaky chcu RTC aby ich napriklad zobrazili
 void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
 {
@@ -352,16 +359,11 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
 		else if (strcmp((char *)data, "ZaluzieAllOpen") == 0)
 		{
 			//Send:02 43 64 00 02 00 0e 80 0e 00 00 00 b8
-			u8 loc_buf[14] = {0x2, 0x43, 0x64, 0x0, 0xb, 0x0, 0x01, 0x80, 0x0c, 0x0, 0x5, 0x0, 0xb9 };
+			u8 loc_buf[14] = {0x2, 0x43, 0x64, 0x0, 0xb, 0x0, 0x01, 0x80, 0x0c, 0x0, 0x5, 0x0, 0xb9};
 			Serial.println("stranky poslali: ZaluzieVsetkyOtvor");
-			//RS485_TxModee(&RS485_toRx_timeout);
-			//Serial1.print("test RS485..Zaluzie All open.. ");
-			for (u8 i = 0; i < 13; i++)
-			{
-				//RS485_TxModee(&RS485_toRx_timeout);
-				Serial1.write(loc_buf[i]);
-				RS485_TxModee(&RS485_toRx_timeout);
-			}
+
+			RS485sendBuffer(loc_buf, 13, &RS485_toRx_timeout);
+
 			Serial.print("[Func:RS485_TxModee]  timeout davam:");
 			Serial.println(RS485_toRx_timeout);
 
@@ -371,16 +373,13 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
 		else if (strcmp((char *)data, "ZaluzieAllStop") == 0)
 		{
 			//Send:02 43 64 00 02 00 0c 80 0c 00 00 00 bc
-			u8 loc_buf[14] = {0x2, 0x43, 0x64, 0x0, 0xb, 0x0, 0x01, 0x80, 0x0e, 0x0, 0x5, 0x0, 0xb7 };
-			
+			u8 loc_buf[14] = {0x2, 0x43, 0x64, 0x0, 0xb, 0x0, 0x01, 0x80, 0x0e, 0x0, 0x5, 0x0, 0xb7};
+
 			Serial.println("stranky poslali: ZaluzieAllStop ");
-			//Serial1.println("test RS485..Zaluzie All Stop.. ");
-			for (u8 i = 0; i < 13; i++)
-			{
-				RS485_TxModee(&RS485_toRx_timeout);
-				Serial1.write(loc_buf[i]);
-			}
-            Serial.print("[Func:RS485_TxModee]  timeout davam:");
+
+			RS485sendBuffer(loc_buf, 13, &RS485_toRx_timeout);
+
+			Serial.print("[Func:RS485_TxModee]  timeout davam:");
 			Serial.println(RS485_toRx_timeout);
 
 			String rr = "[HndlWebSocket] To RS485 posielam STOP zaluzie\r\n";
@@ -390,14 +389,10 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
 		else if (strcmp((char *)data, "ZaluzieAllClose") == 0)
 		{
 			//Send:02 43 64 00 02 00 0d 80 0d 00 00 00 ba
-			u8 loc_buf[14] = {0x2, 0x43, 0x64, 0x0, 0xb, 0x0, 0x01, 0x80, 0x0d, 0x0, 0x5, 0x0, 0xb8 };
+			u8 loc_buf[14] = {0x2, 0x43, 0x64, 0x0, 0xb, 0x0, 0x01, 0x80, 0x0d, 0x0, 0x5, 0x0, 0xb8};
 			Serial.println("stranky poslali: ZaluzieVsetky zatvor");
-			//Serial1.println("test RS485..Zaluzie All close.. ");
-			for (u8 i = 0; i < 13; i++)
-			{
-				RS485_TxModee(&RS485_toRx_timeout);
-				Serial1.write(loc_buf[i]);
-			}
+			RS485sendBuffer(loc_buf, 13, &RS485_toRx_timeout);
+
 			Serial.print("[Func:RS485_TxModee]  timeout davam:");
 			Serial.println(RS485_toRx_timeout);
 
@@ -406,7 +401,6 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
 		}
 	}
 }
-
 
 void onEvent(AsyncWebSocket *server,
 			 AsyncWebSocketClient *client,
@@ -431,7 +425,6 @@ void onEvent(AsyncWebSocket *server,
 		break;
 	}
 }
-
 
 const char *ntpServer = "pool.ntp.org";
 const long gmtOffset_sec = 3600;
@@ -466,7 +459,7 @@ void WiFi_init(void)
 	FuncServer_On();
 
 	AsyncElegantOTA.begin(&server, "qqq", "www"); // Start ElegantOTA
-    configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+	configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
 	server.begin();
 }
 
@@ -519,8 +512,6 @@ void WiFi_connect_sequencer(void) //vplas kazdych 10 sek loop
 		}
 	}
 }
-
-
 
 String handle_LenZobraz_IP_setting(void)
 {
