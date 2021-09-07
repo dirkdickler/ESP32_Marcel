@@ -312,48 +312,7 @@ void Loop_10sek(void)
 	Serial.print("Wifi status:");
 	Serial.println(WiFi.status());
 
-	//https://randomnerdtutorials.com/esp32-useful-wi-fi-functions-arduino/
-	if (WiFi.status() != WL_CONNECTED)
-	{
-		loc_cnt++;
-		Internet_CasDostupny = false;
-	}
-	else
-	{
-		loc_cnt = 0;
-		Serial.println("[10sek] Parada WIFI je Connect davam loc_cnt na Nula");
-
-		//TODO ak je Wifi connect tak pocitam ze RTC cas bude OK este dorob
-		Internet_CasDostupny = true;
-		RTC_cas_OK = true;
-	}
-
-	if (loc_cnt == 2)
-	{
-		Serial.println("[10sek] Odpajam WIFI, lebo wifi nieje: WL_CONNECTED ");
-		WiFi.disconnect(1, 1);
-	}
-
-	if (loc_cnt == 3)
-	{
-		loc_cnt = 255;
-		WiFi.mode(WIFI_MODE_APSTA);
-		Serial.println("znovu -Creating Accesspoint");
-		WiFi.softAP(soft_ap_ssid, soft_ap_password, 7, 0, 3);
-
-		if (!WiFi.config(local_IP, gateway, subnet, primaryDNS, secondaryDNS))
-		{
-			Serial.println("STA Failed to configure");
-		}
-		Serial.println("znovu -Wifi begin");
-		WiFi.begin(NazovSiete, Heslo);
-		u8_t aa = 0;
-		while (WiFi.waitForConnectResult() != WL_CONNECTED && aa < 2)
-		{
-			Serial.print(".");
-			aa++;
-		}
-	}
+	WiFi_connect_sequencer();
 }
 
 

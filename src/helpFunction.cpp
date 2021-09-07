@@ -152,7 +152,7 @@ IPAddress str2IP(String str)
 	return ret;
 }
 
-
+//TODO tu pri tomto osoetri este ked nieje cas z WEBu tak sa to resetne 
 void OdosliCasDoWS(void)
 {
 	String DenvTyzdni = "! Čas nedostupný !";
