@@ -186,7 +186,7 @@ void Loop_10ms()
 
 				if ((loc_paket->CMD & CMD_Reply) == CMD_Reply)
 				{
-					sprintf(temp, "[RS485] Reply od adrese %u\r\n", loc_paket->SCRadress);
+					sprintf(temp, "[RS485] Reply od adrese %u a MSG ID je:%u\r\n", loc_paket->SCRadress, loc_paket->MsgID);
 					DebugMsgToWebSocket(temp);
 				}
 				//02 43 64 00 0a 00 01 20 03 00 05 00 04 f0 01 01 01 02 01 02 01 02 01 02 01  toto nastaveni na room[0] tep a RH na 258 NEKONTROLUJEM sumu
