@@ -40,4 +40,5 @@ void FuncServer_On(void);
 void ESPinfo(void);
 void DebugMsgToWebSocket(String textik);
 
+
 #endif

@@ -1,4 +1,7 @@
 {
     "C_Cpp.errorSquiggles": "Enabled",
-    "editor.fontSize": 13
+    "editor.fontSize": 13,
+    "files.associations": {
+        "*.html": "cpp"
+    }
 }

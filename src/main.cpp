@@ -23,12 +23,12 @@
 #include "HelpFunction.h"
 
 // Replace with your network credentials
-//const char* ssid = "Grabcovi";
-//const char* password = "40177298";
+// const char* ssid = "Grabcovi";
+// const char* password = "40177298";
 const char *soft_ap_ssid = "aDum_Server";
 const char *soft_ap_password = "aaaaaaaaaa";
-//const char *ssid = "semiart";
-//const char *password = "aabbccddff";
+// const char *ssid = "semiart";
+// const char *password = "aabbccddff";
 char NazovSiete[30];
 char Heslo[30];
 
@@ -43,9 +43,9 @@ Ticker timer_100ms(Loop_100ms, 300, 0, MILLIS);
 Ticker timer_1sek(Loop_1sek, 1000, 0, MILLIS);
 Ticker timer_10sek(Loop_10sek, 10000, 0, MILLIS);
 
-//SoftwareSerial swSer(14, 12, false, 256);
-//char swTxBuffer[16];
-//char swRxBuffer[16];
+// SoftwareSerial swSer(14, 12, false, 256);
+// char swTxBuffer[16];
+// char swRxBuffer[16];
 u8 RS485_toRx_timeout;
 
 ESP32Time rtc;
@@ -53,14 +53,14 @@ ESP32Time rtc;
 IPAddress local_IP(192, 168, 1, 14);
 IPAddress gateway(192, 168, 1, 1);
 IPAddress subnet(255, 255, 255, 0);
-IPAddress primaryDNS(8, 8, 8, 8);	//optional
-IPAddress secondaryDNS(8, 8, 4, 4); //optional
+IPAddress primaryDNS(8, 8, 8, 8);	// optional
+IPAddress secondaryDNS(8, 8, 4, 4); // optional
 
 struct tm MyRTC_cas;
-bool Internet_CasDostupny = false; //to je ze dostava cas z Inernetu
-bool RTC_cas_OK = false;		   //ze mam RTC fakt nastaveny bud z interneru, alebo nastaveny manualne
-								   //a to teda ze v RTC mam fakr realny cas
-								   //Tento FLAG, nastavi len pri nacitanie casu z internutu, alebo do buducna manualne nastavenie casu cew WEB
+bool Internet_CasDostupny = false; // to je ze dostava cas z Inernetu
+bool RTC_cas_OK = false;			  // ze mam RTC fakt nastaveny bud z interneru, alebo nastaveny manualne
+								 // a to teda ze v RTC mam fakr realny cas
+								 // Tento FLAG, nastavi len pri nacitanie casu z internutu, alebo do buducna manualne nastavenie casu cew WEB
 
 const u8 mojePrmenaae = 25;
 u16_t cnt = 0;
@@ -99,21 +99,21 @@ void setup()
 	timer_100ms.start();
 	timer_1sek.start();
 	timer_10sek.start();
-	esp_task_wdt_init(WDT_TIMEOUT, true); //enable panic so ESP32 restarts
-	esp_task_wdt_add(NULL);				  //add current thread to WDT watch
+	esp_task_wdt_init(WDT_TIMEOUT, true); // enable panic so ESP32 restarts
+	esp_task_wdt_add(NULL);					  // add current thread to WDT watch
 
-	//RS485 musis spustit az tu, lebo ak ju das hore a ESP ceka na konnect wifi, a pridu nejake data na RS485, tak FreeRTOS =RESET  asi overflow;
+	// RS485 musis spustit az tu, lebo ak ju das hore a ESP ceka na konnect wifi, a pridu nejake data na RS485, tak FreeRTOS =RESET  asi overflow;
 	Serial1.begin(9600);
 
-	//swSer.begin(115200);
-	//swSer.println("");
+	// swSer.begin(115200);
+	// swSer.println("");
 }
 
 void loop()
 {
 	esp_task_wdt_reset();
 	ws.cleanupClients();
-	//AsyncElegantOTA.loop();
+	// AsyncElegantOTA.loop();
 	timer_1ms.update();
 	timer_10ms.update();
 	timer_100ms.update();
@@ -136,9 +136,9 @@ void Loop_1ms()
 void Loop_10ms()
 {
 #define indexData 14
-	static uint8_t TimeOut_RXdata = 0;	 //musi byt static lebo sem skaces z Loop
-	static uint16_t KolkkoNplnenych = 0; //musi byt static lebo sem skaces z Loop
-	static char budd[250];				 //musi byt static lebo sem skaces z Loop
+	static uint8_t TimeOut_RXdata = 0;	 // musi byt static lebo sem skaces z Loop
+	static uint16_t KolkkoNplnenych = 0; // musi byt static lebo sem skaces z Loop
+	static char budd[250];					 // musi byt static lebo sem skaces z Loop
 
 	uint16_t aktualny;
 	char temp[200];
@@ -146,8 +146,7 @@ void Loop_10ms()
 	aktualny = Serial1.available();
 	if (aktualny)
 	{
-
-		//Serial2.readBytes (temp, aktualny);
+		// Serial2.readBytes (temp, aktualny);
 		for (uint16_t i = 0; i < aktualny; i++)
 		{
 			if ((KolkkoNplnenych + aktualny) < sizeof(budd))
@@ -176,7 +175,7 @@ void Loop_10ms()
 
 				sprintf(temp, "[RS485]  DST adresa je:%u\r\n", loc_paket->DSTadress);
 				DebugMsgToWebSocket(temp);
-				//Serial.printf(temp);
+				// Serial.printf(temp);
 
 				sprintf(temp, "[RS485] Mam adresu %u a idem ulozit data z RS485\r\n", loc_paket->SCRadress);
 				DebugMsgToWebSocket(temp);
@@ -189,7 +188,7 @@ void Loop_10ms()
 					sprintf(temp, "[RS485] Reply od adrese %u a MSG ID je:%u\r\n", loc_paket->SCRadress, loc_paket->MsgID);
 					DebugMsgToWebSocket(temp);
 				}
-				//02 43 64 00 0a 00 01 20 03 00 05 00 04 f0 01 01 01 02 01 02 01 02 01 02 01  toto nastaveni na room[0] tep a RH na 258 NEKONTROLUJEM sumu
+				// 02 43 64 00 0a 00 01 20 03 00 05 00 04 f0 01 01 01 02 01 02 01 02 01 02 01  toto nastaveni na room[0] tep a RH na 258 NEKONTROLUJEM sumu
 
 				if (loc_paket->SCRadress == 10)
 				{
@@ -254,23 +253,23 @@ void Loop_100ms(void)
 	if (LedNahodena == false)
 	{
 		LedNahodena = true;
-		//digitalWrite(LedGreen, LOW);
+		// digitalWrite(LedGreen, LOW);
 		digitalWrite(LedOrange, LOW);
 	}
 	else
 	{
 		LedNahodena = false;
-		//digitalWrite(LedGreen, HIGH);
+		// digitalWrite(LedGreen, HIGH);
 		digitalWrite(LedOrange, HIGH);
 
-		//RS485_TxMode;
-		//Serial1.println("test RS485..orange LED High");
+		// RS485_TxMode;
+		// Serial1.println("test RS485..orange LED High");
 	}
 
 	cnt++;
 
-	//Serial.println("[100ms] Loop");
-	if (0) //cnt >= 10)
+	// Serial.println("[100ms] Loop");
+	if (0) // cnt >= 10)
 	{
 		cnt++;
 		myObject2["Citac"] = cnt; // " 11:22 Stredaaaa";
@@ -284,7 +283,7 @@ void Loop_100ms(void)
 void Loop_1sek(void)
 {
 	Serial.print("[1sek Loop]  mam 1 sek....  ");
-	//Serial.println( random(10000,20000));
+	// Serial.println( random(10000,20000));
 	if (Internet_CasDostupny == false)
 	{
 		Serial.print("Internet cas nedostupny !!,  ");
@@ -297,22 +296,22 @@ void Loop_1sek(void)
 	Serial.print("RTC cas cez func rtc.getTime: ");
 	Serial.println(rtc.getTime("%A, %B %d %Y %H:%M:%S"));
 	MyRTC_cas = rtc.getTimeStruct();
-	//Serial.print("[1sek Loop]  free Heap je:");
-	// Serial.println(ESP.getFreeHeap());
+	// Serial.print("[1sek Loop]  free Heap je:");
+	//  Serial.println(ESP.getFreeHeap());
 
 	float flt = (float)ESP.getFreeHeap();
 	flt /= 1000.0f;
 	char locBuf[50];
 	sprintf(locBuf, "%.3f", flt);
 	String rr = "[1sek Loop] signalu: " + (String)WiFi.RSSI() + "dBm  a Heap: " + locBuf + " kB " +
-				" Ine..\r\n ";
+					" Ine..\r\n ";
 	DebugMsgToWebSocket(rr);
 }
 
 void Loop_10sek(void)
 {
 	static u8_t loc_cnt = 0;
-	//Serial.println("\r\n[10sek Loop]  Mam Loop 10 sek..........");
+	// Serial.println("\r\n[10sek Loop]  Mam Loop 10 sek..........");
 	DebugMsgToWebSocket("[10sek Loop]  mam 1 sek....\r\n");
 	Serial.print("Wifi status:");
 	Serial.println(WiFi.status());
@@ -320,42 +319,40 @@ void Loop_10sek(void)
 	WiFi_connect_sequencer();
 }
 
-
-
 void FuncServer_On(void)
 {
 	server.on("/",
-			  HTTP_GET,
-			  [](AsyncWebServerRequest *request)
-			  {
-				  //if (!request->authenticate("ahoj", "xxxx"))
-				  //return request->requestAuthentication();
-				  //request->send_P(200, "text/html", index_html, processor);
-				  request->send_P(200, "text/html", Main);
-			  });
+				 HTTP_GET,
+				 [](AsyncWebServerRequest *request)
+				 {
+					 // if (!request->authenticate("ahoj", "xxxx"))
+					 // return request->requestAuthentication();
+					 // request->send_P(200, "text/html", index_html, processor);
+					 request->send_P(200, "text/html", Main);
+				 });
 
 	server.on("/nastavip",
-			  HTTP_GET,
-			  [](AsyncWebServerRequest *request)
-			  {
-				  if (!request->authenticate("admin", "adum"))
-					  return request->requestAuthentication();
-				  request->send(200, "text/html", handle_Zadavanie_IP_setting());
-			  });
+				 HTTP_GET,
+				 [](AsyncWebServerRequest *request)
+				 {
+					 if (!request->authenticate("admin", "adum"))
+						 return request->requestAuthentication();
+					 request->send(200, "text/html", handle_Zadavanie_IP_setting());
+				 });
 
 	server.on("/Nastaveni",
-			  HTTP_GET,
-			  [](AsyncWebServerRequest *request)
-			  {
-				  handle_Nastaveni(request);
-				  request->send(200, "text/html", "Nastavujem a ukladam do EEPROM");
-				  Serial.println("Idem resetovat ESP");
-				  delay(2000);
-				  esp_restart();
-			  });
+				 HTTP_GET,
+				 [](AsyncWebServerRequest *request)
+				 {
+					 handle_Nastaveni(request);
+					 request->send(200, "text/html", "Nastavujem a ukladam do EEPROM");
+					 Serial.println("Idem resetovat ESP");
+					 delay(2000);
+					 esp_restart();
+				 });
 
 	server.on("/status", HTTP_GET, [](AsyncWebServerRequest *request)
-			  {
+				 {
 				  char ttt[500];
 				  //u16_t citac = EEPROM.readUShort (EE_citacZapisuDoEEPORM);
 				  //u16_t citac2 = EEPROM.readUShort (EE_citac2_ZapisuDoEEPORM);
@@ -388,42 +385,44 @@ void FuncServer_On(void)
 							   "%s %s",
 						  firmware, WiFi.RSSI(), loc_buf, loc_buf2, loc_buf1);
 
-				  request->send(200, "text/html", ttt);
-			  });
+				  request->send(200, "text/html", ttt); });
 
 	server.on("/reset",
-			  HTTP_GET,
-			  [](AsyncWebServerRequest *request)
-			  {
-				  if (!request->authenticate("admin", "radecek78"))
-					  return request->requestAuthentication();
+				 HTTP_GET,
+				 [](AsyncWebServerRequest *request)
+				 {
+					 if (!request->authenticate("admin", "radecek78"))
+						 return request->requestAuthentication();
 
-				  request->send(200, "text/html", "resetujem!!!");
-				  delay(1000);
-				  esp_restart();
-			  });
+					 request->send(200, "text/html", "resetujem!!!");
+					 delay(1000);
+					 esp_restart();
+				 });
 
 	server.on("/vytapeni",
-			  HTTP_GET,
-			  [](AsyncWebServerRequest *request)
-			  {
-				  request->send_P(200, "text/html", vytapeni);
-			  });
+				 HTTP_GET,
+				 [](AsyncWebServerRequest *request)
+				 {
+					 request->send_P(200, "text/html", vytapeni);
+				 });
 
 	server.on("/zaluzie_Main",
-			  HTTP_GET,
-			  [](AsyncWebServerRequest *request)
-			  {
-				  request->send_P(200, "text/html", zaluzie_Main);
-			  });
+				 HTTP_GET,
+				 [](AsyncWebServerRequest *request)
+				 {
+					 request->send_P(200, "text/html", zaluzie_Main);
+				 });
 	server.on("/debug",
-			  HTTP_GET,
-			  [](AsyncWebServerRequest *request)
-			  {
-				  LogEnebleWebPage = true;
-				  request->send_P(200, "text/html", DebugLog_html);
-			  });
+				 HTTP_GET,
+				 [](AsyncWebServerRequest *request)
+				 {
+					 LogEnebleWebPage = true;
+					 request->send_P(200, "text/html", DebugLog_html);
+				 });
 }
+
+
+
 
 void ESPinfo(void)
 {
@@ -433,21 +432,33 @@ void ESPinfo(void)
 	Serial.print("ESP Board MAC Address:  ");
 	Serial.println(WiFi.macAddress());
 	Serial.println("\r\nHardware info");
+	Serial.print("APB CLOCK: ");
+	Serial.print(APB_CLK_FREQ);
+	Serial.println(" Hz");
 	Serial.printf("%d cores Wifi %s%s\n",
-				  chip_info.cores,
-				  (chip_info.features & CHIP_FEATURE_BT) ? "/BT" : "",
-				  (chip_info.features & CHIP_FEATURE_BLE) ? "/BLE" : "");
-	Serial.printf("\r\nSilicon revision: %d\r\n ", chip_info.revision);
+					  chip_info.cores,
+					  (chip_info.features & CHIP_FEATURE_BT) ? "/BT" : "",
+					  (chip_info.features & CHIP_FEATURE_BLE) ? "/BLE" : "");
+	Serial.printf("\r\nESP32 Chip Revision: %d\r\n ", chip_info.revision);
 	Serial.printf("%dMB %s flash\r\n",
-				  spi_flash_get_chip_size() / (1024 * 1024),
-				  (chip_info.features & CHIP_FEATURE_EMB_FLASH) ? "embeded" : "external");
+					  spi_flash_get_chip_size() / (1024 * 1024),
+					  (chip_info.features & CHIP_FEATURE_EMB_FLASH) ? "embeded" : "external");
 
 	Serial.printf("\r\nTotal heap: %d\r\n", ESP.getHeapSize());
 	Serial.printf("Free heap: %d\r\n", ESP.getFreeHeap());
 	Serial.printf("Total PSRAM: %d\r\n", ESP.getPsramSize());
 	Serial.printf("Free PSRAM: %d\r\n", ESP.getFreePsram()); // log_d("Free PSRAM: %d", ESP.getFreePsram());
+	Serial.print("Alokujem buffer psdRamBuffer  500kB PSRAM");
+	byte *psdRamBuffer = (byte *)ps_malloc(500000);
+	Serial.printf(" -Free PSRAM: %d\r\n", ESP.getFreePsram());
+	Serial.print("Uvolnujem buffer psdRamBuffer 500kz PSRAM ");
+	free(psdRamBuffer);
+	Serial.printf(" Free PSRAM po uvolneni : %d\r\n", ESP.getFreePsram()); // log_d("Free PSRAM: %d", ESP.getFreePsram());
 	Serial.println("\r\n*******************************************************************");
+	Serial.print("ESP32 SDK: ");
+	Serial.println(ESP.getSdkVersion());
 }
+
 void DebugMsgToWebSocket(String textik)
 {
 	if (LogEnebleWebPage == true)
